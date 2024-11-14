@@ -1,0 +1,196 @@
+/**************************************************************
+* Class:: CSC-615-01 Spring 2024
+* Name:: Waymore Team
+* Student ID:: ...
+* Github-Name:: ...
+* Project:: Final Project
+*
+* File:: motors.h
+*
+* Description:: Library of functions and wrappers for motor
+*				functionality to be called by brain.c
+*
+**************************************************************/
+
+#ifndef _MOTORS_H_
+#define _MOTORS_H_
+
+// ============================================================================================= //
+// Library Linking
+// ============================================================================================= //
+
+#include <stdlib.h>
+#include <signal.h>
+#include "lib/PCA9685.h"
+#include "lib/DEV_Config.h"
+
+
+// ============================================================================================= //
+// Definitions of Constants
+// ============================================================================================= //
+
+#define DEFAULTADDR 0x40
+#define DEFAULTFREQ 1000
+
+#define MOTORA	0
+#define AIN1	1
+#define AIN2	2
+#define BIN1	3
+#define BIN2	4
+#define MOTORB	5
+
+// ============================================================================================= //
+// Primary Motor Functions
+// ============================================================================================= //
+
+void moveForward(UWORD leftspeed, UWORD rightspeed)
+{
+    /*
+    **  Makes motors move in the forward direction, given a speed parameter for each motor.
+	**	To turn, set one speed lower than the other when calling in brain.c
+	**
+	**	NOTE:
+	**		levels may need to be reversed depending on motor orientation.
+    */
+
+    // Validate the speed inputs on both motors
+	if (leftspeed > 100) leftspeed = 100;
+    else if (leftspeed < 0) leftspeed = 0;
+
+    if (rightspeed > 100) rightspeed = 100;
+	else if (rightspeed < 0) rightspeed = 0;
+
+    // Apply the speeds to the motors
+	PCA9685_SetPwmDutyCycle(MOTORA, leftspeed);
+	PCA9685_SetLevel(MOTORA, 1);
+	PCA9685_SetLevel(MOTORA, 0);
+
+	PCA9685_SetPwmDutyCycle(MOTORB, rightspeed);
+	PCA9685_SetLevel(MOTORB, 1);
+	PCA9685_SetLevel(MOTORB, 0);
+}
+
+void moveBackward(UWORD leftspeed, UWORD rightspeed)
+{
+    /*
+    **  Makes motors move in the backward direction, given a speed parameter for each motor.
+	**	To turn, set one speed lower than the other while calling in brain.c
+	**
+	**	NOTE:
+	**		levels may need to be reversed depending on motor orientation.
+    */
+
+    // Validate the speed inputs on both motors
+	if (leftspeed > 100) leftspeed = 100;
+    else if (leftspeed < 0) leftspeed = 0;
+
+    if (rightspeed > 100) rightspeed = 100;
+	else if (rightspeed < 0) rightspeed = 0;
+
+    // Apply the speeds to the motors
+	PCA9685_SetPwmDutyCycle(MOTORA, leftspeed);
+	PCA9685_SetLevel(MOTORA, 0);
+	PCA9685_SetLevel(MOTORA, 1);
+
+	PCA9685_SetPwmDutyCycle(MOTORB, rightspeed);
+	PCA9685_SetLevel(MOTORB, 0);
+	PCA9685_SetLevel(MOTORB, 1);
+}
+
+void rotateRight(UWORD speed)
+{
+	/*
+    **  Makes left motor move forward and right motor move backward, rotating in place.
+	**	Takes a speed parameter.
+	**
+	**	NOTE:
+	**		levels may need to be reversed depending on motor orientations.
+    */
+
+	// Validate the speed inputs on both motors
+	if (speed > 100) speed = 100;
+    else if (speed < 0) speed = 0;
+
+    // Apply the speeds to the motors
+	PCA9685_SetPwmDutyCycle(MOTORA, speed);
+	PCA9685_SetLevel(MOTORA, 1);
+	PCA9685_SetLevel(MOTORA, 0);
+
+	PCA9685_SetPwmDutyCycle(MOTORB, speed);
+	PCA9685_SetLevel(MOTORB, 0);
+	PCA9685_SetLevel(MOTORB, 1);
+}
+
+void rotateLeft(UWORD speed)
+{
+	/*
+    **  Makes right motor move forward and left motor move backward, rotating in place.
+	**	Takes a speed parameter.
+	**
+	**	NOTE:
+	**		levels may need to be reversed depending on motor orientations.
+    */
+
+	// Validate the speed inputs on both motors
+	if (speed > 100) speed = 100;
+    else if (speed < 0) speed = 0;
+
+    // Apply the speeds to the motors
+	PCA9685_SetPwmDutyCycle(MOTORA, speed);
+	PCA9685_SetLevel(MOTORA, 1);
+	PCA9685_SetLevel(MOTORA, 0);
+
+	PCA9685_SetPwmDutyCycle(MOTORB, speed);
+	PCA9685_SetLevel(MOTORB, 0);
+	PCA9685_SetLevel(MOTORB, 1);
+}
+
+void haltMotors()
+{
+    /*
+    **  Halts Motors by setting both duty cycles and voltage levels to 0.
+    */
+
+	PCA9685_SetPwmDutyCycle(MOTORA, 0);
+	PCA9685_SetLevel(MOTORA, 0);
+	PCA9685_SetLevel(MOTORA, 0);
+
+	PCA9685_SetPwmDutyCycle(MOTORB, 0);
+	PCA9685_SetLevel(MOTORB, 0);
+	PCA9685_SetLevel(MOTORB, 0);
+}
+
+
+// ============================================================================================= //
+// Initialization and Uninitialization Functions
+// ============================================================================================= //
+
+void initializeMotorHat()
+{
+    /*
+    **	Initializes the Motor given an I2C address and a frequency parameter.
+    */
+
+	// Initialize the DEV_Config libraries
+	int res = DEV_ModuleInit();
+	if (res != 0)
+	{
+		perror("initializeMotorHat: Error initializing DEV_Module - exiting.");
+		exit(1);
+	}
+
+	PCA9685_Init(DEFAULTADDR);
+	PCA9685_SetPWMFreq(DEFAULTFREQ);
+}
+
+void uninitializeMotorHat()
+{
+    haltMotors();
+    DEV_ModuleExit();
+}
+
+
+// ============================================================================================= //
+// End of File
+// ============================================================================================= //
+#endif
