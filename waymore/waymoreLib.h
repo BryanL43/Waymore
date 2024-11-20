@@ -68,7 +68,7 @@ typedef struct Thread
 #define READ_OFFSET		0x34
 
 // MMAP Configuration
-#define GPIO_BASE_ADDRESS 0x3f200000
+#define GPIO_BASE_ADDRESS 0xfe200000
 #define MEMORY_BLOCK_SIZE 4096
 
 
@@ -95,8 +95,7 @@ void validatePin(int pin)
         if(pin < 0 || pin > 27)
         {
                 fprintf(stderr,
-                        "%d is an invalid GPIO pin number: "
-                        "The Raspberry Pi Zero 2 W has GPIO pins 0 through 27.\n",
+                        "%d is an invalid GPIO pin number: ",
                         pin);
                 exit(1);
         }
@@ -251,8 +250,7 @@ int getPinLevel(int pin)
 
 	// Get the current level
 	uint32_t level = gpio[readIdx] & pinMask;
-
-	return (level == 0) ? LOW : HIGH;
+	return (level != 0) ? HIGH : LOW;
 }
 
 

@@ -29,32 +29,26 @@
 #define OBSTACLESENSORCOUNT 0
 #define LINESENSORCOUNT 4
 
-// GPIO pin numbers for sensors from left to right, where left is the front left sensor
-#define LINESENSOR1 27
-#define LINESENSOR2 17
-#define LINESENSOR3 18
-#define LINESENSOR4 23
-
 // ============================================================================================= //
 // Definitions of Structures
 // ============================================================================================= //
 
 typedef struct IRreadings
 {
-    int obstacleSensorCount;
-    int obstacleSensorReadings[];
-    int lineSensorCount;
-    int * lineSensorReadings;
-}
+    int obstacleSensorReadings[OBSTACLESENSORCOUNT];
+    int lineSensorReadings[LINESENSORCOUNT];
+}IRreadings;
 
 // ============================================================================================= //
 // Internal variables and states
 // ============================================================================================= //
 
 Thread * thread;
-IRreadings readings;
-int * obstacleSensorLevels;
-int * lineSensorLevels;
+IRreadings * readings;
+
+int obstacleSensorPins[] = {0};
+int lineSensorPins[] = {27, 17, 18, 23};
+
 
 // ============================================================================================= //
 // Main Loop & Business Logic
@@ -65,13 +59,28 @@ void * threadLoopIR()
     while (thread->running)
     {
         // Read current sensor values into state variables
-        obstacleSensorLevel     = getPinLevel(OBSTACLEPIN);
-        leftLineSensorLevel     = getPinLevel(LEFTLINEPIN);
-        //middleLineSensorLevel   = getPinLevel(MIDDLELINEPIN);
-        rightLineSensorLevel    = getPinLevel(RIGHTLINEPIN);
+        for (int i = 0; i < OBSTACLESENSORCOUNT; i++)
+        {
 
-        // Wait 10 milliseconds and repeat
-        milliWait(10);
+            /*
+            ** We know that when pin is HIGH, there is no obstacle,
+            ** so we will return FALSE when HIGH and TRUE when LOW.
+            */ 
+            readings->obstacleSensorReadings[i] = getPinLevel(obstacleSensorPins[i]) ? FALSE : TRUE;
+        }
+        for (int i = 0; i < LINESENSORCOUNT; i++)
+        {
+            /*
+            ** TODO:
+            **      Find out whether black line yields HIGH or LOW values.
+            **      for now it's just returning raw value.
+            */
+
+            readings->lineSensorReadings[i] = getPinLevel(obstacleSensorPins[i]) ? FALSE : TRUE;
+        }
+
+        // Wait 10 microseconds and repeat
+        microWait(10);
     }
 }
 
@@ -82,10 +91,7 @@ void * threadLoopIR()
 
 void startIR()
 {
-    IRreadings readings;
-    obstacleSensorLevels[];
-    int lineSensorLevels[];
-
+    readings = (IRreadings*) malloc(sizeof(IRreadings));
     thread = startThread("IR sensor thread", threadLoopIR);
     if(thread == NULL)
     {
@@ -98,6 +104,8 @@ void stopIR()
 {
     stopThread(thread);
     thread = NULL;
+    free(readings);
+    readings = NULL;
 }
 
 
@@ -105,23 +113,11 @@ void stopIR()
 // Functions for external use
 // ============================================================================================= //
 
-int getObstacleReading(int sensor)
+IRreadings getIRreadings()
 {
-    /*
-    ** We know that when pin is HIGH, there is no obstacle,
-    ** so we will return FALSE when HIGH and TRUE when LOW.
-    */ 
-    return obstacleSensorLevel ? FALSE : TRUE;
+    // Return by readings by value for current snapshot
+    return *readings;
 }
-
-int getLineReading(int sensor)
-{
-    /*
-    ** TODO: We need to figure out whether black == HIGH or LOW
-    */
-    return lineSensorLevel[sensor];
-}
-
 
 // ============================================================================================= //
 // End of File

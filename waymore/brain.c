@@ -27,11 +27,8 @@
 
 typedef struct SensoryData
 {
-    // IR Sensor Readings
-    int obstacleReading;
-    int leftLineReading;
-    int middleLineReading;
-    int rightLineReading;
+    // Obstacle and Line Sensor counts and readings
+    IRreadings * IRreadings;
 
     // RGB Sensor Readings
     //...
@@ -135,16 +132,16 @@ void mainLoop()
     while(running)
     {
         // Collect latest data from senses
-        data.obstacleReading = getObstacleReading();
-        data.leftLineReading = getLeftLineReading();
-        //data.middleLineReading = getMiddleLineReading();
-        data.rightLineReading = getRightLineReading();
+        IRreadings ir = getIRreadings();
 
         //TODO: implement other senses
         //...
         
         // Interpret data and make decision
-        if(data.obstacleReading == FALSE)
+        moveForward(100, 100);
+        int reading = ir.lineSensorReadings[2];
+        printf("reading: %d\n");
+        if(reading == TRUE)
         {
             // Example actions below - uncomment one at a time to try them out
 
@@ -163,8 +160,8 @@ void mainLoop()
             haltMotors();
         }
 
-        // Wait 10ms and repeat
-        milliWait(10);
+        // Wait a bit and repeat
+        milliWait(5);
     }
 }
 
