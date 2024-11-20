@@ -100,7 +100,7 @@ void configureRGB()
     write(device, config, 2);
 }
 
-void initializeRGB()
+void startRGB()
 {
     // Open the I2C bus
     if ((device = open(BUS, O_RDWR)) < 0)
@@ -122,7 +122,7 @@ void initializeRGB()
     rgbThread = startThread("RGB sensor thread", threadLoop);
 }
 
-void uninitializeRGB()
+void stopRGB()
 {
     // Close the I2C bus
     close(device);

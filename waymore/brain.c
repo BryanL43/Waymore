@@ -20,6 +20,7 @@
 #include "waymoreLib.h"
 #include "motors/motors.h"
 #include "senses/ir.h"
+#include "senses/rgb.h"
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -28,10 +29,10 @@
 typedef struct SensoryData
 {
     // Obstacle and Line Sensor counts and readings
-    IRreadings * IRreadings;
+    IRreadings currentIR;
 
     // RGB Sensor Readings
-    //...
+    Color currentColor;
 
     // Camera Readings
     //...
@@ -73,11 +74,14 @@ void initializeLibraries()
     // Initialize register access GPIO library
     initializeGPIO();
 
-    // TODO: Initialize camera library
+    // Initialize camera library
     //...
 
+    // Initialize RGB sensor library
+    initializeRGB();
+
     // Initialize motor hat
-    initializeMotorHat();
+    //initializeMotorHat();
 }
 
 void uninitializeLibraries()
@@ -87,8 +91,10 @@ void uninitializeLibraries()
     */
 
     printf("\nUninitializing each library...\n");
+
+    uninitializeRGB();
+    //uninitializeMotorHat();
     uninitializeGPIO();
-    uninitializeMotorHat();
 }
 
 void startSenses()
@@ -98,9 +104,9 @@ void startSenses()
     **  sense. Use ir.h as a reference.
     */
 
-    startIR();
-    //TODO: startCamera();
-    //TODO: startRGB();
+    //startIR();
+    //startCamera();
+    startRGB();
     //...
 }
 
@@ -111,9 +117,9 @@ void stopSenses()
     **  sense. Use ir.h as a reference.
     */
 
-    stopIR();
-    //TODO: stopCamera();
-    //TODO: stopRGB();
+    //stopIR();
+    //stopCamera();
+    stopRGB();
     //...
 }
 
@@ -131,37 +137,35 @@ void mainLoop()
 
     while(running)
     {
-        // Collect latest data from senses
-        IRreadings ir = getIRreadings();
-
-        //TODO: implement other senses
-        //...
+        // Collect latest IR data
+        //IRreadings ir = getIRreadings();
         
+        // Collect latest RGB data
+        Color color = getClosestColor();
+        printf("Color: %x", color);
+
         // Interpret data and make decision
-        moveForward(100, 100);
-        int reading = ir.lineSensorReadings[2];
-        printf("reading: %d\n");
-        if(reading == TRUE)
-        {
-            // Example actions below - uncomment one at a time to try them out
+        // if(reading == TRUE)
+        // {
+        //     // Example actions below - uncomment one at a time to try them out
 
-            moveForward(100, 100);      // Full speed ahead (left speed %, right speed %)
+        //     moveForward(100, 100);      // Full speed ahead (left speed %, right speed %)
 
-            //moveForward(100, 75);       // High speed right turn (left speed %, right speed %)
+        //     //moveForward(100, 75);       // High speed right turn (left speed %, right speed %)
 
-            //moveForward(75, 100);       // High speed left turn (left speed %, right speed %)
+        //     //moveForward(75, 100);       // High speed left turn (left speed %, right speed %)
 
-            // rotateLeft(100);           // Rotate left (speed %)
+        //     // rotateLeft(100);           // Rotate left (speed %)
 
-            // rotateRight(100);          // Rotate right (speed %)
-        }
-        else
-        {
-            haltMotors();
-        }
+        //     // rotateRight(100);          // Rotate right (speed %)
+        // }
+        // else
+        // {
+        //     haltMotors();
+        // }
 
         // Wait a bit and repeat
-        milliWait(5);
+        milliWait(1000);
     }
 }
 
