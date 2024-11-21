@@ -34,7 +34,7 @@
 #define TIMESTEPMICROSECONDS 1000
 
 // Change to set the speed of the vehicle, 0-100
-#define SPEEDSETTING 15
+#define SPEEDSETTING 33
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -95,7 +95,7 @@ void initializeLibraries()
     initializeMotorHat();
 
     // Initialize PID controller
-    initializePID(TIMESTEPMICROSECONDS);
+    initializePID(TIMESTEPMICROSECONDS, SPEEDSETTING);
 }
 
 void uninitializeLibraries()
@@ -155,20 +155,10 @@ void mainLoop()
 
         // Collect latest RGB data
         //data.color = getColor();
-
-
-        // Print out latest readings
         //printf("Color: %s\n", data.color.name);
 
-        // for (int i=0; i<LINESENSORCOUNT; i++)
-        // {
-        //     printf("Line sensor %d reading:\t%d\n", i+1, data.lineReadings[i]);
-        // }
-
         double controlsignal = getControlSignal(data.lineReadings);
-        
-        printf("Control Signal: %f\n", controlsignal);
-        PIDmotorControl(controlsignal, SPEEDSETTING);
+        PIDmotorControl(controlsignal);
 
         // Wait a bit and repeat
         microWait(TIMESTEPMICROSECONDS);

@@ -55,7 +55,10 @@ void moveForward(UWORD leftspeed, UWORD rightspeed)
 
     // Validate the speed inputs on both motors
 	if (leftspeed > 100) leftspeed = 100;
+	else if (leftspeed < 0) leftspeed = 0;
+	
     if (rightspeed > 100) rightspeed = 100;
+	else if (rightspeed < 0) rightspeed = 0;
 
     // Apply the speeds to the motors
 	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftspeed);
@@ -79,7 +82,10 @@ void moveBackward(UWORD leftspeed, UWORD rightspeed)
 
     // Validate the speed inputs on both motors
 	if (leftspeed > 100) leftspeed = 100;
+	else if (leftspeed < 0) leftspeed = 0;
+
     if (rightspeed > 100) rightspeed = 100;
+	else if (rightspeed < 0) rightspeed = 0;
 
     // Apply the speeds to the motors
 	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftspeed);
@@ -103,6 +109,7 @@ void rotateRight(UWORD speed)
 
 	// Validate the speed inputs on both motors
 	if (speed > 100) speed = 100;
+	else if (speed < 0) speed = 0;
 
     // Apply the speeds to the motors
 	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
@@ -126,6 +133,7 @@ void rotateLeft(UWORD speed)
 
 	// Validate the speed inputs on both motors
 	if (speed > 100) speed = 100;
+	else if (speed < 0) speed = 0;
 
     // Apply the speeds to the motors
 	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
@@ -150,23 +158,6 @@ void haltMotors()
 	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, 0);
 	PCA9685_SetLevel(BIN1, 0);
 	PCA9685_SetLevel(BIN2, 0);
-}
-
-void PIDmotorControl(double controlSignal, int baseSpeed)
-{
-    // Calculate individual wheel speeds
-    int speedLeft = baseSpeed + (int)controlSignal;
-    int speedRight = baseSpeed - (int)controlSignal;
-
-    // Clamp speeds to valid range (0–100)
-    if (speedLeft > 100) speedLeft = 100;
-    if (speedLeft < 0) speedLeft = 0;
-
-    if (speedRight > 100) speedRight = 100;
-    if (speedRight < 0) speedRight = 0;
-
-    // Call the motor control library function
-    moveForward(speedLeft, speedRight);
 }
 
 // ============================================================================================= //
