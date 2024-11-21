@@ -32,7 +32,6 @@
 
 #define BUS "/dev/i2c-1"    // I2C bus device
 #define I2CADDR 0x29        // I2C address of the RGB sensor
-#define READREG 0x94        // Register to read from
 
 #define BLACK   0x000000
 #define WHITE   0xFFFFFF
@@ -180,7 +179,7 @@ void readFromSensor()
     char data[8] = {0};
 
     // Need this in memory for the write function signature
-    uint8_t reg = READREG;
+    uint8_t reg = 0x94;
 
     // Trigger a read
     write(device, &reg, 1);

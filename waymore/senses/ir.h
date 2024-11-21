@@ -54,11 +54,11 @@ void * threadLoopIR()
             **      Find out whether black line yields HIGH or LOW values.
             **      for now it's just returning raw value.
             */
-            lineReadings[i] = getPinLevel(lineSensorPins[i]) ? FALSE : TRUE;
+            lineReadings[i] = getPinLevel(lineSensorPins[i]);
         }
 
-        // Wait 10 microseconds and repeat
-        microWait(10);
+        // Wait a sec and repeat
+        microWait(1);
     }
 }
 

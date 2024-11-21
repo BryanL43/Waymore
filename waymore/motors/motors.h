@@ -152,6 +152,22 @@ void haltMotors()
 	PCA9685_SetLevel(BIN2, 0);
 }
 
+void PIDmotorControl(double controlSignal, int baseSpeed)
+{
+    // Calculate individual wheel speeds
+    int speedLeft = baseSpeed + (int)controlSignal;
+    int speedRight = baseSpeed - (int)controlSignal;
+
+    // Clamp speeds to valid range (0–100)
+    if (speedLeft > 100) speedLeft = 100;
+    if (speedLeft < 0) speedLeft = 0;
+
+    if (speedRight > 100) speedRight = 100;
+    if (speedRight < 0) speedRight = 0;
+
+    // Call the motor control library function
+    moveForward(speedLeft, speedRight);
+}
 
 // ============================================================================================= //
 // Initialization and Uninitialization Functions

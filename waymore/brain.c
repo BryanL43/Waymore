@@ -18,9 +18,23 @@
 
 #include <stdio.h>
 #include "waymoreLib.h"
+
 #include "motors/motors.h"
+
 #include "senses/ir.h"
 #include "senses/rgb.h"
+
+#include "cognition/PID.h"
+
+// ============================================================================================= //
+// Definitions of Constants
+// ============================================================================================= //
+
+// Change to modulate the time between each decision
+#define TIMESTEPMICROSECONDS 1000
+
+// Change to set the speed of the vehicle, 0-100
+#define SPEEDSETTING 15
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -75,10 +89,13 @@ void initializeLibraries()
     initializeGPIO();
 
     // Initialize camera library
-    //...
+    // ...
 
     // Initialize motor hat
     initializeMotorHat();
+
+    // Initialize PID controller
+    initializePID(TIMESTEPMICROSECONDS);
 }
 
 void uninitializeLibraries()
@@ -142,35 +159,19 @@ void mainLoop()
 
         // Print out latest readings
         //printf("Color: %s\n", data.color.name);
-        for (int i=0; i<LINESENSORCOUNT; i++)
-        {
-            printf("Line sensor %d reading:\t%d\n", i+1, data.lineReadings[i]);
-        }
 
-        // Interpret readings and make a decision
-        if(data.lineReadings[1] && data.lineReadings[2])
-        {
-            // Example actions below - uncomment one at a time to try them out
-            printf("Moving forward...\n");
-            moveForward(15, 15);      // Full speed ahead (left speed %, right speed %)
+        // for (int i=0; i<LINESENSORCOUNT; i++)
+        // {
+        //     printf("Line sensor %d reading:\t%d\n", i+1, data.lineReadings[i]);
+        // }
 
-            //moveForward(100, 75);       // High speed right turn (left speed %, right speed %)
-
-            //moveForward(75, 100);       // High speed left turn (left speed %, right speed %)
-
-            // rotateLeft(100);           // Rotate left (speed %)
-
-            // rotateRight(100);          // Rotate right (speed %)
-        }
-        else
-        {
-            printf("Halting.\n");
-            haltMotors();
-        }
-        printf("\n");
+        double controlsignal = getControlSignal(data.lineReadings);
+        
+        printf("Control Signal: %f\n", controlsignal);
+        PIDmotorControl(controlsignal, SPEEDSETTING);
 
         // Wait a bit and repeat
-        milliWait(2500);
+        microWait(TIMESTEPMICROSECONDS);
     }
 }
 
