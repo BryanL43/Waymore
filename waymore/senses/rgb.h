@@ -5,27 +5,27 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: ir.h
+* File:: rgb.h
 *
-* Description:: Library of functions and wrappers for ir
+* Description:: Library of functions and wrappers for RGB
 *		        sensor functionality to be called by brain.c
 *
 **************************************************************/
 
-#ifndef _IR_H_
-#define _IR_H_
+#ifndef _RGB_H_
+#define _RGB_H_
 
 // ============================================================================================= //
 // Library Linking
 // ============================================================================================= //
-
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
 #include "../waymoreLib.h"
 
 // ============================================================================================= //
 //#include <stdio.h>
 //#include <stdlib.h>
-//#include <linux/i2c-dev.h>
-//#include <sys/ioctl.h>
+
 //#include <fcntl.h>
 //#include <unistd.h>
 //#include <stdint.h>
@@ -34,38 +34,33 @@
 #define I2CADDR 0x29        // I2C address of the RGB sensor
 #define READREG 0x94        // Register to read from
 
-#define BLACKVAL   0x000000
-#define WHITEVAL   0xFFFFFF
-#define REDVAL     0xFF0000
-#define GREENVAL   0x00FF00
-#define BLUEVAL    0x0000FF
-#define YELLOWVAL  0xFFFF00
-#define ORANGEVAL  0xFFA500
-#define PURPLEVAL  0x800080
+#define BLACK   0x000000
+#define WHITE   0xFFFFFF
+#define RED     0xFF0000
+#define GREEN   0x00FF00
+#define BLUE    0x0000FF
+#define YELLOW  0xFFFF00
+#define ORANGE  0xFFA500
+#define PURPLE  0x800080
 
-enum Color
+typedef struct Color
 {
-    BLACK=BLACKVAL,
-    WHITE=WHITEVAL,
-    RED=REDVAL,
-    GREEN=GREENVAL,
-    BLUE=BLUEVAL,
-    YELLOW=YELLOWVAL,
-    ORANGE=ORANGEVAL,
-    PURPLE=PURPLEVAL,
-}
+    uint32_t value;
+    char name[12];
+}Color;
 
-typedef struct ColorStruct
+typedef struct ColorReading
 {
     uint8_t red;
     uint8_t green;
     uint8_t blue;
-    char hex[7];
-} ColorStruct;
+    uint32_t hex;
+} ColorReading;
 
 int device;
 Thread * rgbThread;
-ColorStruct currentColor;
+ColorReading current;
+Color closest;
 
 void configureRGB()
 {
@@ -100,6 +95,131 @@ void configureRGB()
     write(device, config, 2);
 }
 
+ColorReading setCurrentReading(int r, int g, int b)
+{
+    // Cap the values to 0-255 and store in current
+    current.red = (r > 255.0) ? 255.0 : ((r < 0) ? 0 : r);
+    current.green = (g > 255.0) ? 255.0 : ((g < 0) ? 0 : g);
+    current.blue = (b > 255.0) ? 255.0 : ((b < 0) ? 0 : b);
+    current.hex = (r << 16) | (g << 8) | b;
+}
+
+void setClosestColor()
+{
+    // Calculate the distance between the current color and each of the predefined colors
+    int distances[8] = {
+        // Black
+        abs(current.red - 0x00) + abs(current.green - 0x00) + abs(current.blue - 0x00),
+        // White
+        abs(current.red - 0xFF) + abs(current.green - 0xFF) + abs(current.blue - 0xFF),
+        // Red
+        abs(current.red - 0xFF) + abs(current.green - 0x00) + abs(current.blue - 0x00),
+        // Green
+        abs(current.red - 0x00) + abs(current.green - 0xFF) + abs(current.blue - 0x00),
+        // Blue
+        abs(current.red - 0x00) + abs(current.green - 0x00) + abs(current.blue - 0xFF),
+        // Yellow
+        abs(current.red - 0xFF) + abs(current.green - 0xFF) + abs(current.blue - 0x00),
+        // Orange
+        abs(current.red - 0xFF) + abs(current.green - 0xA5) + abs(current.blue - 0x00),
+        // Purple
+        abs(current.red - 0x80) + abs(current.green - 0x00) + abs(current.blue - 0x80)
+    };
+
+    // Find the index of the smallest distance
+    int idx = 0;
+    for (int i = 1; i < 8; i++)
+    {
+        if (distances[i] < distances[idx])
+        {
+            idx = i;
+        }
+    }
+
+    // Return the color that corresponds to the smallest distance
+    switch (idx)
+    {
+        case 0:
+            closest.value = BLACK;
+            strcpy(closest.name, "Black");
+            break;
+        case 1:
+            closest.value = WHITE;
+            strcpy(closest.name, "White");
+            break;
+        case 2:
+            closest.value = RED;
+            strcpy(closest.name, "Red");
+            break;
+        case 3:
+            closest.value = GREEN;
+            strcpy(closest.name, "Green");
+            break;
+        case 4:
+            closest.value = BLUE;
+            strcpy(closest.name, "Blue");
+            break;
+        case 5:
+            closest.value = YELLOW;
+            strcpy(closest.name, "Yellow");
+            break;
+        case 6:
+            closest.value = ORANGE;
+            strcpy(closest.name, "Orange");
+            break;
+        case 7:
+            closest.value = PURPLE;
+            strcpy(closest.name, "Purple");
+            break;
+    }
+}
+
+void readFromSensor()
+{
+    // Init an array to store raw data
+    char data[8] = {0};
+
+    // Need this in memory for the write function signature
+    uint8_t reg = READREG;
+
+    // Trigger a read
+    write(device, &reg, 1);
+
+    // Read the results
+    if(read(device, data, 8) != 8)
+    {
+        fprintf(stderr, "Ran into error while reading from RGB sensor\n");
+        exit(1);
+    }
+
+    // Convert the data
+    uint16_t clear = (data[1] * 256 + data[0]);
+    uint16_t red = (data[3] * 256 + data[2]);
+    uint16_t green = (data[5] * 256 + data[4]);
+    uint16_t blue = (data[7] * 256 + data[6]);
+
+    uint32_t sum = clear;
+    int r, g, b;
+    // Calculate the RGB values
+    r = ((float)red / sum) * 255.0;
+    g = ((float)green / sum) * 255.0;
+    b = ((float)blue / sum) * 255.0;
+
+    setCurrentReading(r, g, b);
+}
+
+void * threadLoop()
+{
+    while (rgbThread->running)
+    {
+        // Get a fresh reading from the RGB sensor
+        readFromSensor();
+        setClosestColor();
+        // Wait 5 milliseconds and repeat
+        milliWait(5);
+    }
+}
+
 void startRGB()
 {
     // Open the I2C bus
@@ -129,106 +249,9 @@ void stopRGB()
     stopThread(rgbThread);
 }
 
-ColorStruct setCurrentColor(int r, int g, int b)
+Color getColor()
 {
-    // Cap the values to 0-255 and store in currentColor
-    currentColor.red = (r > 255.0) ? 255.0 : ((r < 0) ? 0 : r);
-    currentColor.green = (g > 255.0) ? 255.0 : ((g < 0) ? 0 : g);
-    currentColor.blue = (b > 255.0) ? 255.0 : ((b < 0) ? 0 : b);
-    currentColor.hex = sprintf(currentColor.hex, "#%02x%02x%02x", (uint8_t)r, (uint8_t)g, (uint8_t)b);
-}
-
-void readFromSensor(char * dataArray)
-{
-    // Init an array to store raw data
-    char data[8] = {0};
-
-    // Trigger a read
-    write(device, READREG, 1);
-
-    // Read the results
-    if(read(device, dataArray, 8) != 8)
-    {
-        fprintf(stderr, "Ran into error while reading from RGB sensor\n");
-        exit(1);
-    }
-
-    // Convert the data
-    uint16_t clear = (data[1] * 256 + data[0]);
-    uint16_t red = (data[3] * 256 + data[2]);
-    uint16_t green = (data[5] * 256 + data[4]);
-    uint16_t blue = (data[7] * 256 + data[6]);
-
-    uint32_t sum = clear;
-    if (clear == 0) {
-        currentColor = setCurrentColor(0, 0, 0);
-        return;
-    }
-
-    int r, g, b;
-    // Calculate the RGB values
-    r = ((float)red / sum) * 255.0;
-    g = ((float)green / sum) * 255.0;
-    b = ((float)blue / sum) * 255.0;
-
-    setCurrentColor(r, g, b);
-}
-
-void * threadLoop()
-{
-    while (rgbThread->running)
-    {
-        // Get a fresh reading from the RGB sensor
-        readFromSensor();
-        // Wait 5 milliseconds and repeat
-        milliWait(5);
-    }
-}
-
-Color getClosestColor()
-{
-    // Calculate the distance between the current color and each of the predefined colors
-    int distances[8] = {
-        abs(currentColor.red - BLACK.red) + abs(currentColor.green - BLACK.green) + abs(currentColor.blue - BLACK.blue),
-        abs(currentColor.red - WHITE.red) + abs(currentColor.green - WHITE.green) + abs(currentColor.blue - WHITE.blue),
-        abs(currentColor.red - RED.red) + abs(currentColor.green - RED.green) + abs(currentColor.blue - RED.blue),
-        abs(currentColor.red - GREEN.red) + abs(currentColor.green - GREEN.green) + abs(currentColor.blue - GREEN.blue),
-        abs(currentColor.red - BLUE.red) + abs(currentColor.green - BLUE.green) + abs(currentColor.blue - BLUE.blue),
-        abs(currentColor.red - YELLOW.red) + abs(currentColor.green - YELLOW.green) + abs(currentColor.blue - YELLOW.blue),
-        abs(currentColor.red - ORANGE.red) + abs(currentColor.green - ORANGE.green) + abs(currentColor.blue - ORANGE.blue),
-        abs(currentColor.red - PURPLE.red) + abs(currentColor.green - PURPLE.green) + abs(currentColor.blue - PURPLE.blue)
-    };
-
-    // Find the index of the smallest distance
-    int minIndex = 0;
-    for (int i = 1; i < 8; i++)
-    {
-        if (distances[i] < distances[minIndex])
-        {
-            minIndex = i;
-        }
-    }
-
-    // Return the color that corresponds to the smallest distance
-    switch (minIndex)
-    {
-    case 0:
-        return BLACK;
-    case 1:
-        return WHITE;
-    case 2:
-        return RED;
-    case 3:
-        return GREEN;
-    case 4:
-        return BLUE;
-    case 5:
-        return YELLOW;
-    case 6:
-        return ORANGE;
-    case 7:
-        return PURPLE;
-    }
+    return closest;
 }
 
 // ============================================================================================= //

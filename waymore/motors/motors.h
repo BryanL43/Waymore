@@ -29,15 +29,15 @@
 // Definitions of Constants
 // ============================================================================================= //
 
-#define DEFAULTADDR 0x40
-#define DEFAULTFREQ 1000
+#define MOTORHATADDR 0x40
+#define MOTORHATFREQ 1000
 
-#define MOTORA	0
+#define LEFTMOTOR	0
 #define AIN1	1
 #define AIN2	2
 #define BIN1	3
 #define BIN2	4
-#define MOTORB	5
+#define RIGHTMOTOR	5
 
 // ============================================================================================= //
 // Primary Motor Functions
@@ -55,19 +55,16 @@ void moveForward(UWORD leftspeed, UWORD rightspeed)
 
     // Validate the speed inputs on both motors
 	if (leftspeed > 100) leftspeed = 100;
-    else if (leftspeed < 0) leftspeed = 0;
-
     if (rightspeed > 100) rightspeed = 100;
-	else if (rightspeed < 0) rightspeed = 0;
 
     // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(MOTORA, leftspeed);
-	PCA9685_SetLevel(MOTORA, 1);
-	PCA9685_SetLevel(MOTORA, 0);
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftspeed);
+	PCA9685_SetLevel(AIN1, 1);
+	PCA9685_SetLevel(AIN2, 0);
 
-	PCA9685_SetPwmDutyCycle(MOTORB, rightspeed);
-	PCA9685_SetLevel(MOTORB, 1);
-	PCA9685_SetLevel(MOTORB, 0);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, rightspeed);
+	PCA9685_SetLevel(BIN1, 0);
+	PCA9685_SetLevel(BIN2, 1);
 }
 
 void moveBackward(UWORD leftspeed, UWORD rightspeed)
@@ -82,19 +79,16 @@ void moveBackward(UWORD leftspeed, UWORD rightspeed)
 
     // Validate the speed inputs on both motors
 	if (leftspeed > 100) leftspeed = 100;
-    else if (leftspeed < 0) leftspeed = 0;
-
     if (rightspeed > 100) rightspeed = 100;
-	else if (rightspeed < 0) rightspeed = 0;
 
     // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(MOTORA, leftspeed);
-	PCA9685_SetLevel(MOTORA, 0);
-	PCA9685_SetLevel(MOTORA, 1);
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftspeed);
+	PCA9685_SetLevel(AIN1, 0);
+	PCA9685_SetLevel(AIN2, 1);
 
-	PCA9685_SetPwmDutyCycle(MOTORB, rightspeed);
-	PCA9685_SetLevel(MOTORB, 0);
-	PCA9685_SetLevel(MOTORB, 1);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, rightspeed);
+	PCA9685_SetLevel(BIN1, 1);
+	PCA9685_SetLevel(BIN2, 0);
 }
 
 void rotateRight(UWORD speed)
@@ -109,16 +103,15 @@ void rotateRight(UWORD speed)
 
 	// Validate the speed inputs on both motors
 	if (speed > 100) speed = 100;
-    else if (speed < 0) speed = 0;
 
     // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(MOTORA, speed);
-	PCA9685_SetLevel(MOTORA, 1);
-	PCA9685_SetLevel(MOTORA, 0);
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
+	PCA9685_SetLevel(AIN1, 0);
+	PCA9685_SetLevel(AIN2, 1);
 
-	PCA9685_SetPwmDutyCycle(MOTORB, speed);
-	PCA9685_SetLevel(MOTORB, 0);
-	PCA9685_SetLevel(MOTORB, 1);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, speed);
+	PCA9685_SetLevel(BIN1, 0);
+	PCA9685_SetLevel(BIN2, 1);
 }
 
 void rotateLeft(UWORD speed)
@@ -133,16 +126,15 @@ void rotateLeft(UWORD speed)
 
 	// Validate the speed inputs on both motors
 	if (speed > 100) speed = 100;
-    else if (speed < 0) speed = 0;
 
     // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(MOTORA, speed);
-	PCA9685_SetLevel(MOTORA, 1);
-	PCA9685_SetLevel(MOTORA, 0);
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
+	PCA9685_SetLevel(AIN1, 0);
+	PCA9685_SetLevel(AIN2, 1);
 
-	PCA9685_SetPwmDutyCycle(MOTORB, speed);
-	PCA9685_SetLevel(MOTORB, 0);
-	PCA9685_SetLevel(MOTORB, 1);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, speed);
+	PCA9685_SetLevel(BIN1, 0);
+	PCA9685_SetLevel(BIN2, 1);
 }
 
 void haltMotors()
@@ -151,13 +143,13 @@ void haltMotors()
     **  Halts Motors by setting both duty cycles and voltage levels to 0.
     */
 
-	PCA9685_SetPwmDutyCycle(MOTORA, 0);
-	PCA9685_SetLevel(MOTORA, 0);
-	PCA9685_SetLevel(MOTORA, 0);
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, 0);
+	PCA9685_SetLevel(AIN1, 0);
+	PCA9685_SetLevel(AIN2, 0);
 
-	PCA9685_SetPwmDutyCycle(MOTORB, 0);
-	PCA9685_SetLevel(MOTORB, 0);
-	PCA9685_SetLevel(MOTORB, 0);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, 0);
+	PCA9685_SetLevel(BIN1, 0);
+	PCA9685_SetLevel(BIN2, 0);
 }
 
 
@@ -179,8 +171,10 @@ void initializeMotorHat()
 		exit(1);
 	}
 
-	PCA9685_Init(DEFAULTADDR);
-	PCA9685_SetPWMFreq(DEFAULTFREQ);
+	PCA9685_Init(MOTORHATADDR);
+	PCA9685_SetPWMFreq(MOTORHATFREQ);
+
+	printf("Motor HAT has been initialized.\n");
 }
 
 void uninitializeMotorHat()

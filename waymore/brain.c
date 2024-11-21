@@ -29,10 +29,10 @@
 typedef struct SensoryData
 {
     // Obstacle and Line Sensor counts and readings
-    IRreadings currentIR;
+    int * lineReadings;
 
     // RGB Sensor Readings
-    Color currentColor;
+    Color color;
 
     // Camera Readings
     //...
@@ -77,11 +77,8 @@ void initializeLibraries()
     // Initialize camera library
     //...
 
-    // Initialize RGB sensor library
-    initializeRGB();
-
     // Initialize motor hat
-    //initializeMotorHat();
+    initializeMotorHat();
 }
 
 void uninitializeLibraries()
@@ -92,8 +89,7 @@ void uninitializeLibraries()
 
     printf("\nUninitializing each library...\n");
 
-    uninitializeRGB();
-    //uninitializeMotorHat();
+    uninitializeMotorHat();
     uninitializeGPIO();
 }
 
@@ -104,9 +100,9 @@ void startSenses()
     **  sense. Use ir.h as a reference.
     */
 
-    //startIR();
+    startIR();
     //startCamera();
-    startRGB();
+    //startRGB();
     //...
 }
 
@@ -117,9 +113,9 @@ void stopSenses()
     **  sense. Use ir.h as a reference.
     */
 
-    //stopIR();
+    stopIR();
     //stopCamera();
-    stopRGB();
+    //stopRGB();
     //...
 }
 
@@ -138,34 +134,43 @@ void mainLoop()
     while(running)
     {
         // Collect latest IR data
-        //IRreadings ir = getIRreadings();
-        
+        data.lineReadings = getLineReadings();
+
         // Collect latest RGB data
-        Color color = getClosestColor();
-        printf("Color: %x", color);
+        //data.color = getColor();
 
-        // Interpret data and make decision
-        // if(reading == TRUE)
-        // {
-        //     // Example actions below - uncomment one at a time to try them out
 
-        //     moveForward(100, 100);      // Full speed ahead (left speed %, right speed %)
+        // Print out latest readings
+        //printf("Color: %s\n", data.color.name);
+        for (int i=0; i<LINESENSORCOUNT; i++)
+        {
+            printf("Line sensor %d reading:\t%d\n", i+1, data.lineReadings[i]);
+        }
 
-        //     //moveForward(100, 75);       // High speed right turn (left speed %, right speed %)
+        // Interpret readings and make a decision
+        if(data.lineReadings[1] && data.lineReadings[2])
+        {
+            // Example actions below - uncomment one at a time to try them out
+            printf("Moving forward...\n");
+            moveForward(15, 15);      // Full speed ahead (left speed %, right speed %)
 
-        //     //moveForward(75, 100);       // High speed left turn (left speed %, right speed %)
+            //moveForward(100, 75);       // High speed right turn (left speed %, right speed %)
 
-        //     // rotateLeft(100);           // Rotate left (speed %)
+            //moveForward(75, 100);       // High speed left turn (left speed %, right speed %)
 
-        //     // rotateRight(100);          // Rotate right (speed %)
-        // }
-        // else
-        // {
-        //     haltMotors();
-        // }
+            // rotateLeft(100);           // Rotate left (speed %)
+
+            // rotateRight(100);          // Rotate right (speed %)
+        }
+        else
+        {
+            printf("Halting.\n");
+            haltMotors();
+        }
+        printf("\n");
 
         // Wait a bit and repeat
-        milliWait(1000);
+        milliWait(2500);
     }
 }
 

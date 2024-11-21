@@ -21,32 +21,21 @@
 
 #include "../waymoreLib.h"
 
+
 // ============================================================================================= //
 // Definitions of Constants
 // ============================================================================================= //
 
 // Counts for each sensor type currently on rig
-#define OBSTACLESENSORCOUNT 0
 #define LINESENSORCOUNT 4
 
-// ============================================================================================= //
-// Definitions of Structures
-// ============================================================================================= //
-
-typedef struct IRreadings
-{
-    int obstacleSensorReadings[OBSTACLESENSORCOUNT];
-    int lineSensorReadings[LINESENSORCOUNT];
-}IRreadings;
 
 // ============================================================================================= //
 // Internal variables and states
 // ============================================================================================= //
 
 Thread * thread;
-IRreadings * readings;
-
-int obstacleSensorPins[] = {0};
+int lineReadings[LINESENSORCOUNT];
 int lineSensorPins[] = {27, 17, 18, 23};
 
 
@@ -58,16 +47,6 @@ void * threadLoopIR()
 {
     while (thread->running)
     {
-        // Read current sensor values into state variables
-        for (int i = 0; i < OBSTACLESENSORCOUNT; i++)
-        {
-
-            /*
-            ** We know that when pin is HIGH, there is no obstacle,
-            ** so we will return FALSE when HIGH and TRUE when LOW.
-            */ 
-            readings->obstacleSensorReadings[i] = getPinLevel(obstacleSensorPins[i]) ? FALSE : TRUE;
-        }
         for (int i = 0; i < LINESENSORCOUNT; i++)
         {
             /*
@@ -75,8 +54,7 @@ void * threadLoopIR()
             **      Find out whether black line yields HIGH or LOW values.
             **      for now it's just returning raw value.
             */
-
-            readings->lineSensorReadings[i] = getPinLevel(obstacleSensorPins[i]) ? FALSE : TRUE;
+            lineReadings[i] = getPinLevel(lineSensorPins[i]) ? FALSE : TRUE;
         }
 
         // Wait 10 microseconds and repeat
@@ -91,7 +69,6 @@ void * threadLoopIR()
 
 void startIR()
 {
-    readings = (IRreadings*) malloc(sizeof(IRreadings));
     thread = startThread("IR sensor thread", threadLoopIR);
     if(thread == NULL)
     {
@@ -104,8 +81,6 @@ void stopIR()
 {
     stopThread(thread);
     thread = NULL;
-    free(readings);
-    readings = NULL;
 }
 
 
@@ -113,10 +88,10 @@ void stopIR()
 // Functions for external use
 // ============================================================================================= //
 
-IRreadings getIRreadings()
+int * getLineReadings()
 {
     // Return by readings by value for current snapshot
-    return *readings;
+    return lineReadings;
 }
 
 // ============================================================================================= //
