@@ -5,49 +5,83 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: ir.h
+* File:: brain.h
 *
-* Description:: Library of functions and wrappers for ir
-*		        sensor functionality to be called by brain.c
+* Description:: Declarations for Waymore's brain
 *
 **************************************************************/
 
-#ifndef _IR_H_
-#define _IR_H_
+#ifndef _BRAIN_H_
+#define _BRAIN_H_
 
 // ============================================================================================= //
 // Library Linking
 // ============================================================================================= //
 
-#include "../waymoreLib.h"
+#include <stdio.h>
+#include "waymoreLib.h"
+#include "senses/ir.h"
+#include "cognition/PID.h"
+#include "control/motors.h"
 
 // ============================================================================================= //
 // Definitions of Constants
 // ============================================================================================= //
 
-// Counts for each sensor type currently on rig
-#define LINESENSORCOUNT 6
+// Change to modulate the wait time between each cycle
+#define TIMESTEPMICROSECONDS 10000
+
+// Change to set the speed of the vehicle, 0-100
+#define SPEEDSETTING 25
+
+// ============================================================================================= //
+// Definitions of Structures
+// ============================================================================================= //
+
+typedef struct SensoryData
+{
+    // Obstacle and Line Sensor counts and readings
+    int * lineReadings;
+
+    // Camera Readings
+    //...
+
+    // Lidar Readings
+    //...
+} SensoryData;
+
+typedef enum PrioritizedSense
+{
+    CAMERA,
+    LIDAR
+}PrioritizedSense;
+
+// ============================================================================================= //
+// Signals and Controls
+// ============================================================================================= //
+
+void signalHandler(int sig);
+
+// ============================================================================================= //
+// Initialization and Uninitialization Functions
+// ============================================================================================= //
+
+void initializeLibraries();
+
+void uninitializeLibraries();
+
+void startSenses();
+
+void stopSenses();
 
 // ============================================================================================= //
 // Main Loop & Business Logic
 // ============================================================================================= //
 
-void * threadLoopIR();
-
-// ============================================================================================= //
-// Start and Stop Functions
-// ============================================================================================= //
-
-void startIR();
-void stopIR();
-
-// ============================================================================================= //
-// Functions for external use
-// ============================================================================================= //
-
-int * getLineReadings();
+void mainLoop();
 
 // ============================================================================================= //
 // End of File
 // ============================================================================================= //
+
 #endif
