@@ -5,47 +5,43 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: ir.h
+* File:: motors.h
 *
-* Description:: Library of functions and wrappers for ir
-*		        sensor functionality to be called by brain.c
+* Description:: Library of functions and wrappers for motor
+*				functionality to be called by brain.c
 *
 **************************************************************/
 
-#ifndef _IR_H_
-#define _IR_H_
+#ifndef _MOTORS_H_
+#define _MOTORS_H_
 
 // ============================================================================================= //
 // Library Linking
 // ============================================================================================= //
 
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/param.h>
 #include "../waymoreLib.h"
+#include "lib/PCA9685.h"
+#include "lib/DEV_Config.h"
 
 // ============================================================================================= //
-// Definitions of Constants
+// Primary Motor Functions
 // ============================================================================================= //
 
-// Counts for each sensor type currently on rig
-#define LINESENSORCOUNT 6
+void moveForward(int leftspeed, int rightspeed);
+void moveBackward(int leftspeed, int rightspeed);
+void rotateRight(int speed);
+void rotateLeft(int speed);
+void haltMotors();
 
 // ============================================================================================= //
-// Main Loop & Business Logic
+// Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-void * threadLoopIR();
-
-// ============================================================================================= //
-// Start and Stop Functions
-// ============================================================================================= //
-
-void startIR();
-void stopIR();
-
-// ============================================================================================= //
-// Functions for external use
-// ============================================================================================= //
-
-int * getLineReadings();
+void initializeMotorHat();
+void uninitializeMotorHat();
 
 // ============================================================================================= //
 // End of File

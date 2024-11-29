@@ -12,25 +12,14 @@
 *
 **************************************************************/
 
-#ifndef _MOTORS_H_
-#define _MOTORS_H_
-
-// ============================================================================================= //
-// Library Linking
-// ============================================================================================= //
-
-#include <stdlib.h>
-#include <signal.h>
-#include "lib/PCA9685.h"
-#include "lib/DEV_Config.h"
-
+#include "motors.h"
 
 // ============================================================================================= //
 // Definitions of Constants
 // ============================================================================================= //
 
 #define MOTORHATADDR 0x40
-#define MOTORHATFREQ 1000
+#define MOTORHATFREQ 1000	// Frequency Range is 40Hz - 1000Hz
 
 #define LEFTMOTOR	0
 #define AIN1	1
@@ -43,7 +32,7 @@
 // Primary Motor Functions
 // ============================================================================================= //
 
-void moveForward(UWORD leftspeed, UWORD rightspeed)
+void moveForward(int leftSpeed, int rightSpeed)
 {
     /*
     **  Makes motors move in the forward direction, given a speed parameter for each motor.
@@ -54,23 +43,24 @@ void moveForward(UWORD leftspeed, UWORD rightspeed)
     */
 
     // Validate the speed inputs on both motors
-	if (leftspeed > 100) leftspeed = 100;
-	else if (leftspeed < 0) leftspeed = 0;
-	
-    if (rightspeed > 100) rightspeed = 100;
-	else if (rightspeed < 0) rightspeed = 0;
+	if (leftSpeed > 100) leftSpeed = 100;
+	else if (leftSpeed < 0) leftSpeed = 0;
 
-    // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftspeed);
+    if (rightSpeed > 100) rightSpeed = 100;
+	else if (rightSpeed < 0) rightSpeed = 0;
+
+	// Make both wheels to move forward
 	PCA9685_SetLevel(AIN1, 1);
 	PCA9685_SetLevel(AIN2, 0);
-
-	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, rightspeed);
 	PCA9685_SetLevel(BIN1, 0);
 	PCA9685_SetLevel(BIN2, 1);
+
+	// Set the speeds
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftSpeed);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, rightSpeed);
 }
 
-void moveBackward(UWORD leftspeed, UWORD rightspeed)
+void moveBackward(int leftSpeed, int rightSpeed)
 {
     /*
     **  Makes motors move in the backward direction, given a speed parameter for each motor.
@@ -81,23 +71,24 @@ void moveBackward(UWORD leftspeed, UWORD rightspeed)
     */
 
     // Validate the speed inputs on both motors
-	if (leftspeed > 100) leftspeed = 100;
-	else if (leftspeed < 0) leftspeed = 0;
+	if (leftSpeed > 100) leftSpeed = 100;
+	else if (leftSpeed < 0) leftSpeed = 0;
 
-    if (rightspeed > 100) rightspeed = 100;
-	else if (rightspeed < 0) rightspeed = 0;
+    if (rightSpeed > 100) rightSpeed = 100;
+	else if (rightSpeed < 0) rightSpeed = 0;
 
-    // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftspeed);
+	// Make both wheels to move backward
 	PCA9685_SetLevel(AIN1, 0);
 	PCA9685_SetLevel(AIN2, 1);
-
-	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, rightspeed);
 	PCA9685_SetLevel(BIN1, 1);
 	PCA9685_SetLevel(BIN2, 0);
+
+	// Set the speeds
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, leftSpeed);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, rightSpeed);
 }
 
-void rotateRight(UWORD speed)
+void rotateRight(int speed)
 {
 	/*
     **  Makes left motor move forward and right motor move backward, rotating in place.
@@ -107,21 +98,22 @@ void rotateRight(UWORD speed)
 	**		levels may need to be reversed depending on motor orientations.
     */
 
-	// Validate the speed inputs on both motors
+	// Validate the speed input
 	if (speed > 100) speed = 100;
 	else if (speed < 0) speed = 0;
 
-    // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
+	// Make wheels move in opposite directions
 	PCA9685_SetLevel(AIN1, 0);
 	PCA9685_SetLevel(AIN2, 1);
-
-	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, speed);
 	PCA9685_SetLevel(BIN1, 0);
 	PCA9685_SetLevel(BIN2, 1);
+
+	// Set the speeds
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, speed);
 }
 
-void rotateLeft(UWORD speed)
+void rotateLeft(int speed)
 {
 	/*
     **  Makes right motor move forward and left motor move backward, rotating in place.
@@ -131,33 +123,36 @@ void rotateLeft(UWORD speed)
 	**		levels may need to be reversed depending on motor orientations.
     */
 
-	// Validate the speed inputs on both motors
+	// Validate the speed input
 	if (speed > 100) speed = 100;
 	else if (speed < 0) speed = 0;
 
-    // Apply the speeds to the motors
-	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
+	// Make wheels move in opposite directions
 	PCA9685_SetLevel(AIN1, 0);
 	PCA9685_SetLevel(AIN2, 1);
-
-	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, speed);
 	PCA9685_SetLevel(BIN1, 0);
 	PCA9685_SetLevel(BIN2, 1);
+
+	// Set the speeds
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, speed);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, speed);
 }
 
 void haltMotors()
 {
     /*
-    **  Halts Motors by setting both duty cycles and voltage levels to 0.
+    **  Halts Motors by setting voltage levels and duty cycles to 0.
     */
 
-	PCA9685_SetPwmDutyCycle(LEFTMOTOR, 0);
+   	// Set power levels to 0
 	PCA9685_SetLevel(AIN1, 0);
 	PCA9685_SetLevel(AIN2, 0);
-
-	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, 0);
 	PCA9685_SetLevel(BIN1, 0);
 	PCA9685_SetLevel(BIN2, 0);
+
+	// Set the speeds
+	PCA9685_SetPwmDutyCycle(LEFTMOTOR, 0);
+	PCA9685_SetPwmDutyCycle(RIGHTMOTOR, 0);
 }
 
 // ============================================================================================= //
@@ -190,8 +185,6 @@ void uninitializeMotorHat()
     DEV_ModuleExit();
 }
 
-
 // ============================================================================================= //
 // End of File
 // ============================================================================================= //
-#endif

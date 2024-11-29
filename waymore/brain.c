@@ -7,57 +7,19 @@
 *
 * File:: brain.c
 *
-* Description:: The point of entry for Waymore's final project
-*               and the heart of its business logic
+* Description:: Implementations for Waymore's brain
 *
 **************************************************************/
 
-// ============================================================================================= //
-// Library Linking
-// ============================================================================================= //
-
-#include <stdio.h>
-#include "waymoreLib.h"
-
-#include "motors/motors.h"
-
-#include "senses/ir.h"
-#include "senses/rgb.h"
-
-#include "cognition/PID.h"
-
-// ============================================================================================= //
-// Definitions of Constants
-// ============================================================================================= //
-
-// Change to modulate the time between each decision
-#define TIMESTEPMICROSECONDS 10000
-
-// Change to set the speed of the vehicle, 0-100
-#define SPEEDSETTING 50
-
-// ============================================================================================= //
-// Definitions of Structures
-// ============================================================================================= //
-
-typedef struct SensoryData
-{
-    // Obstacle and Line Sensor counts and readings
-    int * lineReadings;
-
-    // RGB Sensor Readings
-    Color color;
-
-    // Camera Readings
-    //...
-} SensoryData;
+#include "brain.h"
 
 // ============================================================================================= //
 // Variables and states
 // ============================================================================================= //
 
 int running = TRUE;
-SensoryData data;
+SensoryData senseData;
+PrioritizedSense senseInCharge;
 
 // ============================================================================================= //
 // Signals and Controls
@@ -91,11 +53,16 @@ void initializeLibraries()
     // Initialize camera library
     // ...
 
+    // Initialize lidar library
+    // ...
+
     // Initialize motor hat
     initializeMotorHat();
 
     // Initialize PID controller
     initializePID(TIMESTEPMICROSECONDS, SPEEDSETTING);
+
+    senseInCharge = CAMERA;
 }
 
 void uninitializeLibraries()
@@ -119,7 +86,7 @@ void startSenses()
 
     startIR();
     //startCamera();
-    //startRGB();
+    //startLidar();
     //...
 }
 
@@ -132,7 +99,7 @@ void stopSenses()
 
     stopIR();
     //stopCamera();
-    //stopRGB();
+    //startLidar();
     //...
 }
 
@@ -145,20 +112,31 @@ void mainLoop()
     /*
     **  This is a simplified version of the type of main loop we'll need,
     **  where we start by collecting the latest data from our senses
-    **  and then interpret the data and act on it.
+    **  and then interpret the senseData and act on it.
     */
 
     while(running)
     {
-        // Collect latest IR data
-        data.lineReadings = getLineReadings();
+        senseData.lineReadings = getLineReadings();
+        //senseData.cameraFrame = getCameraFrame(); // or whatever Bryan cooked up
+        //senseData.lidarReadings = getLidarReadings(); // or whatever Sukrit cooked up
 
-        // Collect latest RGB data
-        //data.color = getColor();
-        //printf("Color: %s\n", data.color.name);
+        // If camera is sensorInCharge:
+        // 1. Check if lidar is reading an obstacle in front FOV and within a given distance
+        // 2. Check if camera is reading NULL, NaN, or whatever it reads when the line is gone
+        //      a. if missing line && reading obstacle in front, switch senseInCharge to LIDAR
+        //      b. if we have a line still, we chillin
+        // 3. Check if camera is reading a corner straight ahead. If so, set some kind of IR
+        //    sensor waiting state to trigger a rotating turn as soon as it reads the corner.
+        // 4. If the above states have not been entered, it's business as usual. Generate an
+        //    error from the curved line with the camera and apply it to the motors.
 
-        double controlsignal = getControlSignal(data.lineReadings);
-        PIDmotorControl(controlsignal);
+        // If lidar is sensorInCharge:
+        // To Do: figure out exact lidar path following logic
+
+        //...
+
+        PIDmotorControl(calculateControlSignal(senseData.lineReadings));
 
         // Wait a bit and repeat
         microWait(TIMESTEPMICROSECONDS);

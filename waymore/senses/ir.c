@@ -5,49 +5,73 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: ir.h
+* File:: ir.c
 *
-* Description:: Library of functions and wrappers for ir
-*		        sensor functionality to be called by brain.c
+* Description:: Function implementations and states for ir
+*		        sensor functionality
 *
 **************************************************************/
 
-#ifndef _IR_H_
-#define _IR_H_
+#include "ir.h"
 
 // ============================================================================================= //
-// Library Linking
+// Internal variables and states
 // ============================================================================================= //
 
-#include "../waymoreLib.h"
-
-// ============================================================================================= //
-// Definitions of Constants
-// ============================================================================================= //
-
-// Counts for each sensor type currently on rig
-#define LINESENSORCOUNT 6
+Thread * thread;
+int lineReadings[LINESENSORCOUNT];
+int lineSensorPins[] = {17, 27, 22, 18, 23, 24};
 
 // ============================================================================================= //
 // Main Loop & Business Logic
 // ============================================================================================= //
 
-void * threadLoopIR();
+void * threadLoopIR()
+{
+    while (thread->running)
+    {
+        for (int i = 0; i < LINESENSORCOUNT; i++)
+        {
+            /*
+            ** TODO:
+            **      Find out whether black line yields HIGH or LOW values.
+            **      for now it's just returning raw value.
+            */
+            lineReadings[i] = getPinLevel(lineSensorPins[i]);
+        }
+    }
+}
 
 // ============================================================================================= //
 // Start and Stop Functions
 // ============================================================================================= //
 
-void startIR();
-void stopIR();
+void startIR()
+{
+    thread = startThread("IR sensor thread", threadLoopIR);
+
+    if(thread == NULL)
+    {
+        fprintf(stderr, "Failed to start the IR sensor thread. Exiting.\n");
+        exit(1);
+    }
+}
+
+void stopIR()
+{
+    stopThread(thread);
+    thread = NULL;
+}
 
 // ============================================================================================= //
 // Functions for external use
 // ============================================================================================= //
 
-int * getLineReadings();
+int * getLineReadings()
+{
+    return lineReadings;
+}
 
 // ============================================================================================= //
 // End of File
 // ============================================================================================= //
-#endif
