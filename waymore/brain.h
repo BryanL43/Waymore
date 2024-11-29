@@ -44,7 +44,7 @@ typedef struct SensoryData
     int * lineReadings;
 
     // Camera Readings
-    //...
+    int * cameraLineDistances;
 
     // Lidar Readings
     //...

@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <pthread.h>
 
+
 // ============================================================================================= //
 // Definitions of Structures
 // ============================================================================================= //
@@ -39,11 +40,12 @@ typedef struct Thread
 	int running;
 }Thread;
 
+
 // ============================================================================================= //
 // Definitions of Constants
 // ============================================================================================= //
 
-// Global definitions for flexibility and clarity elsewhere in code
+// Dictionary of definitions for flexibility and clarity elsewhere in code
 #define ON		1
 #define OFF		0
 
@@ -69,6 +71,7 @@ void validateLevel(int level);
 
 void validateDirection(int direction);
 
+
 // ============================================================================================= //
 // GPIO Initialization and Uninitialization Functions
 // ============================================================================================= //
@@ -76,6 +79,7 @@ void validateDirection(int direction);
 void initializeGPIO();
 
 void uninitializeGPIO();
+
 
 // ============================================================================================= //
 // GPIO Primary Functions
@@ -87,6 +91,7 @@ void setPinLevel(int pin, int level);
 
 int getPinLevel(int pin);
 
+
 // ============================================================================================= //
 // Threading Initialization and Uninitialization Functions
 // ============================================================================================= //
@@ -94,6 +99,7 @@ int getPinLevel(int pin);
 Thread * startThread(char * name, void*(*function)(void *));
 
 void stopThread(Thread * thread);
+
 
 // =============================================================================== //
 // Time Related Functions
@@ -104,6 +110,7 @@ void nanoWait(long nanoseconds);
 void microWait(long microseconds);
 
 void milliWait(long milliseconds);
+
 
 // ============================================================================================= //
 // End of File
