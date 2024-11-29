@@ -31,10 +31,10 @@
 // ============================================================================================= //
 
 // Change to modulate the time between each decision
-#define TIMESTEPMICROSECONDS 1000
+#define TIMESTEPMICROSECONDS 10000
 
 // Change to set the speed of the vehicle, 0-100
-#define SPEEDSETTING 33
+#define SPEEDSETTING 50
 
 // ============================================================================================= //
 // Definitions of Structures
