@@ -27,12 +27,6 @@
 // Library Functions
 // ============================================================================================= //
 
-static void PCA9685_WriteByte(UBYTE reg, UBYTE value);
-
-static UBYTE PCA9685_ReadByte(UBYTE reg);
-
-static void PCA9685_SetPWM(UBYTE channel, UWORD on, UWORD off);
-
 void PCA9685_Init(char addr);
 
 void PCA9685_SetPWMFreq(UWORD freq);

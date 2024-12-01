@@ -132,28 +132,6 @@ void GPIO_Config(void)
     DEV_GPIO_Mode(INT_PIN, 0);
 }
 
-void DEV_SPI_Init()
-{
-    //printf("BCM2835 SPI Device\r\n");  
-    bcm2835_spi_begin();                                         //Start spi interface, set spi pin for the reuse function
-    bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);     //High first transmission
-    bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                  //spi mode 0
-    bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_128);  //Frequency
-    bcm2835_spi_chipSelect(BCM2835_SPI_CS0);                     //set CE0
-    bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, LOW);     //enable cs0
-}
-
-void DEV_SPI_WriteByte(uint8_t Value)
-{
-    bcm2835_spi_transfer(Value);
-}
-
-void DEV_SPI_Write_nByte(uint8_t *pData, uint32_t Len)
-{
-    uint8_t rData[Len];
-    bcm2835_spi_transfernb(pData,rData,Len);
-}
-
 void DEV_I2C_Init(uint8_t Add)
 {
     //printf("BCM2835 I2C Device\r\n");  
@@ -171,7 +149,7 @@ int I2C_Read_Byte(uint8_t Cmd)
 {
 	int ref;
     char rbuf[2]={0};
-    bcm2835_i2c_read_register_rs(&Cmd, rbuf, 1);
+    bcm2835_i2c_read_register_rs((char*)&Cmd, rbuf, 1);
     ref = rbuf[0];
     return ref;
 }
@@ -181,7 +159,7 @@ int I2C_Read_Word(uint8_t Cmd)
 {
 	int ref;
     char rbuf[2] = {0};
-    bcm2835_i2c_read_register_rs(&Cmd, rbuf, 2);
+    bcm2835_i2c_read_register_rs((char*)&Cmd, rbuf, 2);
     ref = rbuf[1]<<8 | rbuf[0];
     return ref;
 }

@@ -96,7 +96,7 @@ int getPinLevel(int pin);
 // Threading Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-Thread * startThread(char * name, void*(*function)(void *));
+Thread * startThread(const char * name, void*(*function)(void *));
 
 void stopThread(Thread * thread);
 

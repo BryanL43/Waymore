@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/param.h>
-#include "../waymoreLib.h"
-#include "lib/PCA9685.h"
-#include "lib/DEV_Config.h"
+#include "WaymoreLib.h"
+#include "../libraries/PCA9685.h"
+#include "../libraries/DEV_Config.h"
 
 // ============================================================================================= //
 // Primary Motor Functions

@@ -12,7 +12,7 @@
 *
 **************************************************************/
 
-#include "waymoreLib.h"
+#include "../headers/WaymoreLib.h"
 
 // ============================================================================================= //
 // Definitions of Constants (private to waymoreLib)
@@ -97,6 +97,8 @@ void initializeGPIO()
 	** with mmap & our volatile gpio variable.
 	*/
 
+	printf("Initializing gpio...");
+
 	// Open the dev/mem file, catching errors
 	int mem = open("/dev/mem", O_RDWR | O_SYNC);
 	if (mem == -1)
@@ -119,6 +121,7 @@ void initializeGPIO()
 		exit(1);
 	}
 
+	printf("done.\n");
 	// Close file and return
 	close(mem);
 }
@@ -216,13 +219,13 @@ int getPinLevel(int pin)
 // Threading Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-Thread * startThread(char * name, void*(*function)(void *))
+Thread * startThread(const char * name, void* (*function) (void *))
 {
 	// Validate the function
 	if(function == NULL)
 	{
 		fprintf(stderr, "Failed to start %s: "
-				"function cannot be null.\n");
+				"function cannot be null.\n", name);
 		exit(1);
 	}
 
@@ -251,7 +254,7 @@ Thread * startThread(char * name, void*(*function)(void *))
 	int res = pthread_create(&thread->id, NULL, function, NULL);
 	if (res != 0)
 	{
-		fprintf(stderr, "Failed to start '%s'\n");
+		fprintf(stderr, "Failed to start '%s'\n", thread->name);
 		thread->running = 0;
 		free(thread->name);
 		free(thread);

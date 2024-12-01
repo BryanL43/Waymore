@@ -12,7 +12,7 @@
 *
 **************************************************************/
 
-#include "motors.h"
+#include "../headers/MotorControl.h"
 
 // ============================================================================================= //
 // Definitions of Constants
@@ -161,9 +161,11 @@ void haltMotors()
 
 void initializeMotorHat()
 {
-    /*
-    **	Initializes the Motor given an I2C address and a frequency parameter.
-    */
+	/*
+	**	Initializes the Motor given an I2C address and a frequency parameter.
+	*/
+
+	printf("Initializing waveshare motor HAT...");
 
 	// Initialize the DEV_Config libraries
 	int res = DEV_ModuleInit();
@@ -176,7 +178,7 @@ void initializeMotorHat()
 	PCA9685_Init(MOTORHATADDR);
 	PCA9685_SetPWMFreq(MOTORHATFREQ);
 
-	printf("Motor HAT has been initialized.\n");
+	printf("Motor HAT initialized.\n");
 }
 
 void uninitializeMotorHat()

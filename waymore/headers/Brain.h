@@ -19,20 +19,34 @@
 // ============================================================================================= //
 
 #include <stdio.h>
-#include "waymoreLib.h"
-#include "senses/ir.h"
-#include "cognition/PID.h"
-#include "control/motors.h"
+
+// Include gpio & other basic functionality
+#include "WaymoreLib.h"
+
+// Include senses
+#include "LineSensors.h"
+#include "Camera.h"
+
+// Include cognitive functions
+#include "PidController.h"
+
+// Include motor control
+#include "MotorControl.h"
 
 // ============================================================================================= //
 // Definitions of Constants
 // ============================================================================================= //
 
 // Change to modulate the wait time between each cycle
-#define TIMESTEPMICROSECONDS 10000
+#define TIMESTEPMICROSECONDS 100000
 
 // Change to set the speed of the vehicle, 0-100
-#define SPEEDSETTING 25
+#define SPEEDSETTING 33
+
+// Set Camera resolution
+#define CAMWIDTH 640
+#define CAMHEIGHT 480
+#define CAMSLICES 3
 
 // ============================================================================================= //
 // Definitions of Structures

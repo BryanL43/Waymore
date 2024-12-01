@@ -11,15 +11,15 @@
 *
 **************************************************************/
 
-#include "brain.h"
+#include "../headers/Brain.h"
 
 // ============================================================================================= //
 // Variables and states
 // ============================================================================================= //
 
 int running = TRUE;
+PrioritizedSense senseInCharge = CAMERA;
 SensoryData senseData;
-PrioritizedSense senseInCharge;
 
 // ============================================================================================= //
 // Signals and Controls
@@ -45,13 +45,11 @@ void initializeLibraries()
     ** Any libraries needed should be called here, and nowhere else.
     */
 
-    printf("Initializing each library...\n");
-
     // Initialize register access GPIO library
     initializeGPIO();
 
     // Initialize camera library
-    // ...
+    initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
 
     // Initialize lidar library
     // ...
@@ -60,9 +58,7 @@ void initializeLibraries()
     initializeMotorHat();
 
     // Initialize PID controller
-    initializePID(TIMESTEPMICROSECONDS, SPEEDSETTING);
-
-    senseInCharge = CAMERA;
+    initializePID();
 }
 
 void uninitializeLibraries()
@@ -74,6 +70,7 @@ void uninitializeLibraries()
     printf("\nUninitializing each library...\n");
 
     uninitializeMotorHat();
+    uninitializeCamera();
     uninitializeGPIO();
 }
 
@@ -85,7 +82,7 @@ void startSenses()
     */
 
     startIR();
-    //startCamera();
+    startCamera();
     //startLidar();
     //...
 }
@@ -98,7 +95,7 @@ void stopSenses()
     */
 
     stopIR();
-    //stopCamera();
+    stopCamera();
     //startLidar();
     //...
 }
@@ -118,25 +115,12 @@ void mainLoop()
     while(running)
     {
         senseData.lineReadings = getLineReadings();
-        //senseData.cameraFrame = getCameraFrame(); // or whatever Bryan cooked up
+        senseData.cameraLineDistances = getCameraLineDistances();
         //senseData.lidarReadings = getLidarReadings(); // or whatever Sukrit cooked up
 
-        // If camera is sensorInCharge:
-        // 1. Check if lidar is reading an obstacle in front FOV and within a given distance
-        // 2. Check if camera is reading NULL, NaN, or whatever it reads when the line is gone
-        //      a. if missing line && reading obstacle in front, switch senseInCharge to LIDAR
-        //      b. if we have a line still, we chillin
-        // 3. Check if camera is reading a corner straight ahead. If so, set some kind of IR
-        //    sensor waiting state to trigger a rotating turn as soon as it reads the corner.
-        // 4. If the above states have not been entered, it's business as usual. Generate an
-        //    error from the curved line with the camera and apply it to the motors.
+        printf("dist from line: %d\n", senseData.cameraLineDistances[CAMSLICES-1]);
 
-        // If lidar is sensorInCharge:
-        // To Do: figure out exact lidar path following logic
-
-        //...
-
-        PIDmotorControl(calculateControlSignal(senseData.lineReadings));
+        PIDmotorControl(senseData.cameraLineDistances[CAMSLICES-1]);
 
         // Wait a bit and repeat
         microWait(TIMESTEPMICROSECONDS);

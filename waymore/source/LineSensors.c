@@ -12,7 +12,7 @@
 *
 **************************************************************/
 
-#include "ir.h"
+#include "../headers/LineSensors.h"
 
 // ============================================================================================= //
 // Internal variables and states
@@ -26,8 +26,10 @@ int lineSensorPins[] = {17, 27, 22, 18, 23, 24};
 // Main Loop & Business Logic
 // ============================================================================================= //
 
-void * threadLoopIR()
+void * threadLoop(void * args)
 {
+    (void)args;
+
     while (thread->running)
     {
         for (int i = 0; i < LINESENSORCOUNT; i++)
@@ -40,6 +42,8 @@ void * threadLoopIR()
             lineReadings[i] = getPinLevel(lineSensorPins[i]);
         }
     }
+
+    return NULL;
 }
 
 // ============================================================================================= //
@@ -48,7 +52,7 @@ void * threadLoopIR()
 
 void startIR()
 {
-    thread = startThread("IR sensor thread", threadLoopIR);
+    thread = startThread("IR sensor thread", threadLoop);
 
     if(thread == NULL)
     {
