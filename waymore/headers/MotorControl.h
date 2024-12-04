@@ -27,14 +27,23 @@
 #include "../libraries/DEV_Config.h"
 
 // ============================================================================================= //
-// Primary Motor Functions
+// Definitions of Structures or States
 // ============================================================================================= //
 
-void moveForward(int leftspeed, int rightspeed);
-void moveBackward(int leftspeed, int rightspeed);
-void rotateRight(int speed);
-void rotateLeft(int speed);
-void haltMotors();
+typedef enum MotorAction
+{
+    FORWARD,
+    ROTATELEFT,
+    ROTATERIGHT,
+    BACKWARD,
+    HALT
+}MotorAction;
+
+// ============================================================================================= //
+// Public facing control
+// ============================================================================================= //
+
+void commandMotors(MotorAction action, int leftSpeed, int rightSpeed);
 
 // ============================================================================================= //
 // Initialization and Uninitialization Functions

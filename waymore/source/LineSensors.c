@@ -18,7 +18,7 @@
 // Internal variables and states
 // ============================================================================================= //
 
-Thread * thread;
+Thread * lineSensorThread;
 int lineReadings[LINESENSORCOUNT];
 int lineSensorPins[] = {17, 27, 22, 18, 23, 24};
 
@@ -26,11 +26,11 @@ int lineSensorPins[] = {17, 27, 22, 18, 23, 24};
 // Main Loop & Business Logic
 // ============================================================================================= //
 
-void * threadLoop(void * args)
+void * lineSensorThreadLoop(void * args)
 {
     (void)args;
 
-    while (thread->running)
+    while (lineSensorThread->running)
     {
         for (int i = 0; i < LINESENSORCOUNT; i++)
         {
@@ -52,9 +52,9 @@ void * threadLoop(void * args)
 
 void startIR()
 {
-    thread = startThread("IR sensor thread", threadLoop);
+    lineSensorThread = startThread("IR sensor thread", lineSensorThreadLoop);
 
-    if(thread == NULL)
+    if(lineSensorThread == NULL)
     {
         fprintf(stderr, "Failed to start the IR sensor thread. Exiting.\n");
         exit(1);
@@ -63,15 +63,15 @@ void startIR()
 
 void stopIR()
 {
-    stopThread(thread);
-    thread = NULL;
+    stopThread(lineSensorThread);
+    lineSensorThread = NULL;
 }
 
 // ============================================================================================= //
 // Functions for external use
 // ============================================================================================= //
 
-int * getLineReadings()
+int * getLineSensorReadings()
 {
     return lineReadings;
 }

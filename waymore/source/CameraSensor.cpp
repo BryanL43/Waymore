@@ -3,7 +3,10 @@
 // ============================================================================================= //
 // Constructor and Configuration
 // ============================================================================================= //
-CameraSensor::CameraSensor(const int horizontalSlices) {
+CameraSensor::CameraSensor(const int horizontalSlices)
+{
+    shuttingDown = false;
+
     // Loads the library's cam manager for cam acquisition
     camManager = std::make_unique<CameraManager>();
     camManager->start();
@@ -26,17 +29,18 @@ CameraSensor::CameraSensor(const int horizontalSlices) {
     //std::cout << "Acquired cam: " << cam->id() << std::endl;
 
     // Create & config frame processor
-    frameProcessor = std::make_unique<FrameProcessor>(horizontalSlices, 0.95, 90, 170, true);
+    frameProcessor = std::make_unique<FrameProcessor>(horizontalSlices, 0.95, 120, 180, false);
 }
 
 int CameraSensor::configCamera( const uint_fast32_t width,
                                 const uint_fast32_t height,
                                 const PixelFormat pixelFormat,
-                                const StreamRole role) {
+                                const StreamRole role) 
+{
     // Create configuration profile for the camera
     config = cam->generateConfiguration({ role });
     StreamConfiguration &streamConfig = config->at(0);
-    std::cout << "Default configuration is: " << streamConfig.toString() << std::endl;
+    //std::cout << "Default configuration is: " << streamConfig.toString() << std::endl;
 
     // Adjust & validate the desired configuration
     streamConfig.size.width = width;
@@ -48,7 +52,7 @@ int CameraSensor::configCamera( const uint_fast32_t width,
         std::cerr << "Failed to configure camera: " << cam->id() << std::endl;
         return -EINVAL;
     }
-    std::cout << "Selected configuration is: " << streamConfig.toString() << std::endl;
+    //std::cout << "Selected configuration is: " << streamConfig.toString() << std::endl;
 
     // Allocate the buffers & map memory
     allocator = std::make_unique<FrameBufferAllocator>(cam);
@@ -84,9 +88,6 @@ int CameraSensor::configCamera( const uint_fast32_t width,
 
 void CameraSensor::startCamera() 
 {
-    // Set the isRunning flag
-    isRunning = true;
-
     // Prepare a vector of request buffers for the camera to fill
     prepareRequests();
 
@@ -102,7 +103,8 @@ void CameraSensor::startCamera()
     }
 }
 
-void CameraSensor::prepareRequests() {
+void CameraSensor::prepareRequests() 
+{
     // Acquire the allocated buffers for streams stored in CameraConfiguration by libcamera
     // to create the requests (we can percieve request as a promise and fullfill event)
     for (StreamConfiguration &cfg : *config) {
@@ -130,7 +132,7 @@ void CameraSensor::prepareRequests() {
 
 void CameraSensor::fillRequest(Request* request)
 {
-    if(isRunning == false) return;
+    if(shuttingDown) return;
 
     // Make sure the request hasn't been cancelled
     if (request->status() == Request::RequestCancelled) return;
@@ -144,11 +146,8 @@ void CameraSensor::fillRequest(Request* request)
             try {
                 // Render the frame, then reuse the buffer and re-queue the request
                 renderFrame(frame, buffer);
-                if(isRunning)
-                {
-                    request->reuse(Request::ReuseBuffers);
-                    cam->queueRequest(request);
-                }
+                request->reuse(Request::ReuseBuffers);
+                cam->queueRequest(request);
             } catch (const std::exception& e) {
                 std::cerr << "Error trying to render frame: " << e.what() << std::endl;
                 return;
@@ -157,9 +156,9 @@ void CameraSensor::fillRequest(Request* request)
     }
 }
 
-void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buffer) {
+void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buffer) 
+{
     const StreamConfiguration &streamConfig = config->at(0);
-
     try {
         // Find the mapped buffer associated with the given FrameBuffer
         auto item = mappedBuffers.find(const_cast<libcamera::FrameBuffer*>(buffer));
@@ -182,11 +181,8 @@ void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buf
     }
 }
 
-int* CameraSensor::getLineDistances() {
-    if (!frameProcessor || !isRunning) {
-        return nullptr;
-    }
-
+int * CameraSensor::getLineDistances() 
+{
     return frameProcessor->getDistances();
 }
 
@@ -194,14 +190,18 @@ int* CameraSensor::getLineDistances() {
 // Stopping and Destroying the Camera instance
 // ============================================================================================= //
 
-void CameraSensor::stopCamera() {
+CameraSensor::~CameraSensor()
+{
     if (!cam) {
         std::cerr << "Camera is not initialized or already stopped." << std::endl;
         return;
     }
 
-    // Set flag to prevent fillRequests from queueing
-    isRunning = false;
+    // Set the shutting down flag to stop further traffic through fillRequest()
+    shuttingDown = true;
+
+    // Wait for a short duration to make sure the current fillRequest() function has been exited
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     // Stop the camera
     cam->stop();
@@ -211,12 +211,6 @@ void CameraSensor::stopCamera() {
 
     // Release exclusive control of the camera device
     cam->release();
-}
-
-CameraSensor::~CameraSensor() {
-    if (isRunning) {
-        stopCamera();
-    }
 
     // Free memory mappings
     for (auto& [buffer, spans] : mappedBuffers) {

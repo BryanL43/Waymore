@@ -18,7 +18,6 @@
 // ============================================================================================= //
 
 int running = TRUE;
-PrioritizedSense senseInCharge = CAMERA;
 SensoryData senseData;
 
 // ============================================================================================= //
@@ -31,8 +30,8 @@ void signalHandler(int sig)
 **  Allows the safe stopping of the program via Ctrl-C,
 **	making sure to uninitialize GPIO pin and stop the motor.
 */
-	printf("\nSignal received - stopping gracefully...\n\n");
     running = FALSE;
+    printf("\nSignal received - stopping gracefully...\n\n");
 }
 
 // ============================================================================================= //
@@ -70,20 +69,19 @@ void uninitializeLibraries()
     printf("\nUninitializing each library...\n");
 
     uninitializeMotorHat();
-    uninitializeCamera();
     uninitializeGPIO();
+    uninitializeCamera();
 }
 
 void startSenses()
 {
     /*
     **  This is where we will be calling the start() function of each
-    **  sense. Use ir.h as a reference.
+    **  sense.
     */
 
     startIR();
     startCamera();
-    //startLidar();
     //...
 }
 
@@ -91,12 +89,10 @@ void stopSenses()
 {
     /*
     **  This is where we will be calling the stop() function of each
-    **  sense. Use ir.h as a reference.
+    **  sense.
     */
 
     stopIR();
-    stopCamera();
-    //startLidar();
     //...
 }
 
@@ -107,23 +103,19 @@ void stopSenses()
 void mainLoop()
 {
     /*
-    **  This is a simplified version of the type of main loop we'll need,
-    **  where we start by collecting the latest data from our senses
+    **  start by collecting the latest data from our senses
     **  and then interpret the senseData and act on it.
     */
 
     while(running)
     {
-        senseData.lineReadings = getLineReadings();
         senseData.cameraLineDistances = getCameraLineDistances();
-        //senseData.lidarReadings = getLidarReadings(); // or whatever Sukrit cooked up
+        //int speedLimit = calculateSpeedLimit(senseData.cameraLineDistances);
 
-        printf("dist from line: %d\n", senseData.cameraLineDistances[CAMSLICES-1]);
-
-        PIDmotorControl(senseData.cameraLineDistances[CAMSLICES-1]);
-
-        // Wait a bit and repeat
-        microWait(TIMESTEPMICROSECONDS);
+        senseData.lineSensorReadings = getLineSensorReadings();
+        double error = calculateError(senseData.lineSensorReadings);
+        double signal = calculateControlSignal(error);
+        applyControlSignal(signal, 330);
     }
 }
 

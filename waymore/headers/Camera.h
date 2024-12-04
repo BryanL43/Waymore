@@ -13,8 +13,7 @@ typedef void Camera; // Intermediate for C compatibility
 
 Camera * initializeCamera(const int pixelWidth, const int pixelHeight, const int slices);
 void startCamera();
-int* getCameraLineDistances();
-void stopCamera();
+int * getCameraLineDistances();
 void uninitializeCamera();
 
 #ifdef __cplusplus

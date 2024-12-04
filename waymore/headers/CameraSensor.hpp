@@ -26,28 +26,23 @@ public:
     using Request = libcamera::Request;
 
     CameraSensor(const int horizontalSlices);
-
     int configCamera(
                     const uint_fast32_t width,
                     const uint_fast32_t height,
                     const PixelFormat pixelFormat, 
                     const StreamRole role);
-
     void startCamera();
-
-    int* getLineDistances();
-
-    void stopCamera();
-
+    int * getLineDistances();
     ~CameraSensor();
 
 private:
+    bool shuttingDown; // To change behavior while shutting down
+
     std::shared_ptr<Camera> cam;
     std::unique_ptr<CameraManager> camManager;
     std::unique_ptr<CameraConfiguration> config;
     std::unique_ptr<FrameBufferAllocator> allocator;
     std::vector<std::unique_ptr<Request>> requests;
-    bool isRunning;
 
     // House the Span (mapped memory: 1st param = region offset of file; 2nd param = size)
     std::map<FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mappedBuffers;

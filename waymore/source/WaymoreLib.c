@@ -289,29 +289,57 @@ void stopThread(Thread * thread)
 // Time Related Functions
 // =============================================================================== //
 
-void nanoWait(long nanoseconds)
+void nanoWait(uint64_t nanoseconds)
 {
         /*
         ** nanoWait is a wrapper for nanosleep
         ** which hides the timespec configuration
         ** from the user and allows use with a single
-        ** line and parameter (time in nanoseconds)
+        ** line and parameter (time in nanoseconds).
+		**
+		** This underlying function is used for precision
+		** as well as its ability to be interrupted by a signal.
         */
 
         struct timespec ts;
-        ts.tv_sec  = nanoseconds / 1000000000;
-        ts.tv_nsec = nanoseconds % 1000000000;
+        ts.tv_sec  = nanoseconds / 1000000000L;
+        ts.tv_nsec = nanoseconds % 1000000000L;
         nanosleep(&ts, NULL);
 }
 
-void microWait(long microseconds)
+void microWait(uint64_t microseconds)
 {
-	usleep(microseconds);
+	nanoWait(microseconds*1000);
 }
 
-void milliWait(long milliseconds)
+void milliWait(uint64_t milliseconds)
 {
-	usleep(milliseconds*1000);
+	nanoWait(milliseconds*1000000);
+}
+
+struct timespec currentTime()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	return ts;
+}
+
+unsigned long microSecondsSince(struct timespec * before)
+{
+	struct timespec now = currentTime();
+	int64_t secondComponent = now.tv_sec - before->tv_sec;
+	int64_t nanoComponent = now.tv_nsec - before->tv_nsec;
+	int64_t nanoSince = secondComponent*1000000000L + nanoComponent;
+	return nanoSince/1000;
+}
+
+void printTimeBetween(struct timespec * previous, struct timespec * current)
+{
+	int64_t secondComponent = current->tv_sec - previous->tv_sec;
+	int64_t nanoComponent = current->tv_nsec - previous->tv_nsec;
+	int64_t nanoSince = secondComponent*1000000000L + nanoComponent;
+    double microSince = nanoSince/1000.0;
+	printf("Duration between times: %.2f microseconds\n", microSince);
 }
 
 // ============================================================================================= //

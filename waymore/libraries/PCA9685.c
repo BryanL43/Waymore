@@ -55,44 +55,16 @@
 // Library Functions
 // ============================================================================================= //
 
-/**
- * Write bytes in PCA9685
- * 
- * @param reg: register.
- * @param value: value.
- *
- * Example:
- * PCA9685_WriteByte(0x00, 0xff);
- */
 static void PCA9685_WriteByte(UBYTE reg, UBYTE value)
 {
     I2C_Write_Byte(reg, value);
 }
 
-/**
- * read byte in PCA9685.
- *
- * @param reg: register.
- *
- * Example:
- * UBYTE buf = PCA9685_ReadByte(0x00);
- */
 static UBYTE PCA9685_ReadByte(UBYTE reg)
 {
     return I2C_Read_Byte(reg);
 }
 
-/**
- * Set the PWM output.
- *
- * @param channel: 16 output channels.  //(0 ~ 15)
- * @param on: 12-bit register will hold avalue for the ON time.  //(0 ~ 4095)
- * @param off: 12-bit register will hold the value for the OFF time.  //(0 ~ 4095)
- *
- * @For more information, please see page 15 - page 19 of the datasheet.
- * Example:
- * PCA9685_SetPWM(0, 0, 4095);
- */
 static void PCA9685_SetPWM(UBYTE channel, UWORD on, UWORD off)
 {
     PCA9685_WriteByte(LED0_ON_L + 4*channel, on & 0xFF);
@@ -101,79 +73,54 @@ static void PCA9685_SetPWM(UBYTE channel, UWORD on, UWORD off)
     PCA9685_WriteByte(LED0_OFF_H + 4*channel, off >> 8);
 }
 
-/**
- * PCA9685 Initialize.
- * For the PCA9685, the device address can be controlled by setting A0-A5.
- * On our driver board, control is set by setting A0-A4, and A5 is grounded.
- * 
- * @param addr: PCA9685 address.  //0x40 ~ 0x5f
- *
- * Example:
- * PCA9685_Init(0x40);
- */
 void PCA9685_Init(char addr)
 {
     DEV_I2C_Init(addr);
     I2C_Write_Byte(MODE1, 0x00);
 }
 
-/**
- * Set the frequency (PWM_PRESCALE) and restart.
- * 
- * For the PCA9685, Each channel output has its own 12-bit 
- * resolution (4096 steps) fixed frequency individual PWM 
- * controller that operates at a programmable frequency 
- * from a typical of 40 Hz to 1000 Hz with a duty cycle 
- * that is adjustable from 0 % to 100 % 
- * 
- * @param freq: Output frequency.  //40 ~ 1000
- *
- * Example:
- * PCA9685_SetPWMFreq(50);
- */
 void PCA9685_SetPWMFreq(UWORD freq)
 {
-    freq *= 0.9;  // Correct for overshoot in the frequency setting (see issue #11).
-    double prescaleval = 25000000.0;
-    prescaleval /= 4096.0;
-    prescaleval /= freq;
-    prescaleval -= 1;
+    // Adjust frequency slightly to account for hardware limitations
+    freq *= 0.9;
 
-    UBYTE prescale = floor(prescaleval + 0.5);
+    // Calculate prescale value based on the frequency provided
+    double prescaleval = 25000000.0;  // 25MHz clock frequency
+    prescaleval /= 4096.0;            // 12-bit precision (fixed for PCA9685)
+    prescaleval /= freq;              // Desired frequency
+    prescaleval -= 1.0;
 
+    UBYTE prescale = (UBYTE)floor(prescaleval + 0.5);
+
+    // Read the current mode register value
     UBYTE oldmode = PCA9685_ReadByte(MODE1);
-    UBYTE newmode = (oldmode & 0x7F) | 0x10; // sleep
+    
+    // Set the new mode to sleep mode to change the frequency
+    UBYTE sleepmode = (oldmode & 0x7F) | 0x10;
+    PCA9685_WriteByte(MODE1, sleepmode); // Enter sleep mode to change the prescale
 
-    PCA9685_WriteByte(MODE1, newmode); // go to sleep
-    PCA9685_WriteByte(PRESCALE, prescale); // set the prescaler
-    PCA9685_WriteByte(MODE1, oldmode);
-    DEV_Delay_ms(5);
-    PCA9685_WriteByte(MODE1, oldmode | 0x80);  //  This sets the MODE1 register to turn on auto increment.
+    // Set the prescaler value
+    PCA9685_WriteByte(PRESCALE, prescale);
+
+    // Restart the oscillator without needing an explicit delay
+    UBYTE restartmode = oldmode | 0x80;
+    PCA9685_WriteByte(MODE1, oldmode);  // Wake up from sleep mode
+
+    // Ensure the oscillator is stable before enabling auto increment
+    while ((PCA9685_ReadByte(MODE1) & 0x10) != 0) {
+        // Busy wait until the oscillator restarts and stabilizes
+    }
+
+    // Enable auto increment for subsequent register access
+    PCA9685_WriteByte(MODE1, restartmode);
 }
 
-/**
- * Set channel output the PWM duty cycle.
- * 
- * @param channel: 16 output channels.  //(0 ~ 15)
- * @param pulse: duty cycle.  //(0 ~ 100  == 0% ~ 100%)
- *
- * Example:
- * PCA9685_SetPwmDutyCycle(1, 100);
- */
+// where channel is the motor channel and pulse is 0 to 1000:
 void PCA9685_SetPwmDutyCycle(UBYTE channel, UWORD pulse)
 {
-    PCA9685_SetPWM(channel, 0, pulse * (4096 / 100) - 1);
+    PCA9685_SetPWM(channel, 0, pulse * (4096 / 1000) - 1);
 }
 
-/**
- * Set channel output level.
- * 
- * @param channel: 16 output channels.  //(0 ~ 15)
- * @param value: output level, 0 low level, 1 high level.  //0 or 1
- *
- * Example:
- * PCA9685_SetLevel(3, 1);
- */
 void PCA9685_SetLevel(UBYTE channel, UWORD value)
 {
     if (value == 1)

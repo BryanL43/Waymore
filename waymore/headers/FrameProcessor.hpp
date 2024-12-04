@@ -14,8 +14,7 @@ class FrameProcessor {
 
         void processFrame(cv::Mat &frame, unsigned int height, unsigned int width,
                             const uint8_t* buffer);
-        int* getDistances() const;
-        int getSlices();
+        int * getDistances();
 
     private:
         int slices;
@@ -23,11 +22,14 @@ class FrameProcessor {
         int minThreshold;
         int maxThreshold;
         bool debugMode = false;
+        int * distances;
 
-        int* distances; 
-        mutable std::mutex distancesMutex;
-
+        // Main functionality
         cv::Point processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &frame, int sliceHeight);
+
+        // Performance measuring functionality
+        struct timespec currentTime();
+        void printTimeBetween(struct timespec * previous, struct timespec * current);
 };
 
 #endif

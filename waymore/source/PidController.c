@@ -15,22 +15,26 @@
 
 #include "../headers/PidController.h"
 
-double lineSensorPositions[LINESENSORCOUNT];
+#define TIMESTEP_MS 1.0
+#define MAXSPEED 1000.0
 
-PIDGains gain;
-double timestep;
+static double lineSensorPositions[LINESENSORCOUNT];
+static PIDGains gain;
+
+int calculateSpeedLimit(int * cameraLineDistances);
+
+double calculateControlSignal(double error);
+
+void applyControlSignal(double controlSignal, int speed);
 
 void initializePID()
 {
     printf("Initializing PID controller...");
 
-    // Configure timestep duration and speed
-    timestep = TIMESTEPMICROSECONDS/1e6;
-
     // Configure initial PID gain settings
-    gain.proportional = 1;
-    gain.integral = 0;
-    gain.derivative = 0;
+    gain.proportional = 1.0;
+    gain.integral = 0.0;
+    gain.derivative = 0.0;
 
     // Procedurally apply "position" values to each line sensor
     for (int i=0; i<LINESENSORCOUNT; i++)
@@ -40,6 +44,22 @@ void initializePID()
     }
 
     printf("done.\n");
+}
+
+double calculateLineSensorError(int * lineSensorReadings)
+{
+    double sum = 0.0;
+    double activeSensorCount = 0.0;
+    for (int i=0; i<LINESENSORCOUNT; i++)
+    {
+        if (lineSensorReadings[i] == 0)
+        {
+            sum += lineSensorPositions[i];
+            activeSensorCount++;
+        }
+    }
+    double error = sum/activeSensorCount;
+    return;
 }
 
 double calculateControlSignal(double error)
@@ -64,31 +84,33 @@ double calculateControlSignal(double error)
     return P+I+D;
 }
 
-void PIDmotorControl(int controlSignal)
+void applyControlSignal(double controlSignal, int speed)
 {
     // Initialize both speeds at max
-    int speedLeft = SPEEDSETTING, speedRight = SPEEDSETTING;
+    double speedLeft = speedLim, speedRight = speedLim;
 
     // Normalize the control signal to be between 0 and speedsetting
-    double max = ((double)CAMWIDTH)/2, speedlim = (double)SPEEDSETTING;
-    double normControl = fabs(controlSignal)/max*speedlim;
+    double max = ((double)CAMWIDTH)/2;
 
-    printf("normalized abs val control: %f (float) | %d (int)\n",
-            normControl, (int)normControl);
+    double normControl = fabs((double)controlSignal)/max*speedLim;
+
+    printf("normalized abs val control: %f (float)\n", normControl);
 
     // If error is greater than zero, we must go LEFT, so slow down the left tire
     if (controlSignal > 0)
     {
-        speedLeft = speedLeft - (int)normControl;
+        speedLeft = speedLeft - normControl;
     }
 
     // If error less than zero, we must go RIGHT, so slow down the right tire
     if (controlSignal < 0)
     {
-        speedRight = speedRight - (int)normControl;
+        speedRight = speedRight - normControl;
     }
 
-    printf("L: %d\tR: %d\n", speedLeft, speedRight);
+    int left = speedLeft, right = speedRight;
 
-    moveForward(speedLeft, speedRight);
+    printf("L: %d\tR: %d\n", left, right);
+
+    commandMotors(FORWARD, left, right);
 }

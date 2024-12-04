@@ -28,8 +28,12 @@ typedef struct PIDGains
 
 void initializePID();
 
-double calculateControlSignal();
+double calculateLineSensorError(int * lineSensorReadings);
 
-void PIDmotorControl();
+int calculateSpeedLimit(int * cameraLineDistances);
+
+double calculateControlSignal(double error);
+
+void applyControlSignal(double controlSignal, int speed);
 
 #endif

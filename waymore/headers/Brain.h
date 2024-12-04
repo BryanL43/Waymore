@@ -37,16 +37,9 @@
 // Definitions of Constants
 // ============================================================================================= //
 
-// Change to modulate the wait time between each cycle
-#define TIMESTEPMICROSECONDS 100000
-
-// Change to set the speed of the vehicle, 0-100
-#define SPEEDSETTING 33
-
-// Set Camera resolution
 #define CAMWIDTH 640
 #define CAMHEIGHT 480
-#define CAMSLICES 3
+#define CAMSLICES 4
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -55,7 +48,7 @@
 typedef struct SensoryData
 {
     // Obstacle and Line Sensor counts and readings
-    int * lineReadings;
+    int * lineSensorReadings;
 
     // Camera Readings
     int * cameraLineDistances;
@@ -63,12 +56,6 @@ typedef struct SensoryData
     // Lidar Readings
     //...
 } SensoryData;
-
-typedef enum PrioritizedSense
-{
-    CAMERA,
-    LIDAR
-}PrioritizedSense;
 
 // ============================================================================================= //
 // Signals and Controls

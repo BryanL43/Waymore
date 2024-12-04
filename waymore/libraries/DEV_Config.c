@@ -41,48 +41,6 @@ int INT_PIN;
 // Library Functions
 // ============================================================================================= //
 
-static int DEV_Equipment_Testing(void)
-{
-	int i;
-	int fd;
-	char value_str[20];
-	fd = open("/etc/issue", O_RDONLY);
-    printf("Current environment: ");
-	while(1) {
-		if (fd < 0) {
-			return -1;
-		}
-		for(i=0;; i++) {
-			if (read(fd, &value_str[i], 1) < 0) {
-				return -1;
-			}
-			if(value_str[i] ==32) {
-				printf("\r\n");
-				break;
-			}
-			printf("%c",value_str[i]);
-		}
-		break;
-	}
-
-	if(i<5) {
-		printf("Unrecognizable\r\n");
-        return -1;
-	} else {
-		char RPI_System[10]   = {"Raspbian"};
-		for(i=0; i<6; i++) {
-			if(RPI_System[i] != value_str[i]) {
-                #if USE_DEV_LIB    
-                    return 'J';
-                #endif
-                return -1;
-			}
-		}
-        return 'R';
-	}
-	return -1;
-}
-
 void DEV_GPIO_Mode(UWORD Pin, UWORD Mode)
 {
     /*
@@ -117,24 +75,11 @@ void DEV_Delay_ms(UDOUBLE xms)
 
 void GPIO_Config(void)
 {
-    int Equipment = DEV_Equipment_Testing();
-    if(Equipment=='R'){
-        INT_PIN = 4;
-    }else if(Equipment=='J'){
-        #if USE_DEV_LIB
-        INT_PIN = GPIO4;
-        #endif
-    }else{
-        printf("Device read failed or unrecognized!!!\r\n");
-        while(1);
-    }
-    
-    DEV_GPIO_Mode(INT_PIN, 0);
+    DEV_GPIO_Mode(4, 0);
 }
 
 void DEV_I2C_Init(uint8_t Add)
 {
-    //printf("BCM2835 I2C Device\r\n");  
     bcm2835_i2c_begin();
     bcm2835_i2c_setSlaveAddress(Add);
 }

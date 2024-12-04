@@ -60,19 +60,6 @@ int* getCameraLineDistances() {
     return camera->getLineDistances();
 }
 
-void stopCamera()
-{
-    if (!camera)
-    {
-        std::cerr << "No camera initialized!" << std::endl;
-        return;
-    }
-    else
-    {
-        camera->stopCamera();
-    }
-}
-
 void uninitializeCamera() 
 {
     if (!camera)

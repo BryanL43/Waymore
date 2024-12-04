@@ -105,12 +105,15 @@ void stopThread(Thread * thread);
 // Time Related Functions
 // =============================================================================== //
 
-void nanoWait(long nanoseconds);
+// Interruptable waiting
+void nanoWait(uint64_t nanoseconds);
+void microWait(uint64_t microseconds);
+void milliWait(uint64_t milliseconds);
 
-void microWait(long microseconds);
-
-void milliWait(long milliseconds);
-
+// Times and Durations
+struct timespec currentTime();
+unsigned long microSecondsSince(struct timespec * previous);
+void printTimeBetween(struct timespec * previous, struct timespec * current);
 
 // ============================================================================================= //
 // End of File
