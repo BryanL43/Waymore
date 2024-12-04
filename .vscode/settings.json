@@ -84,7 +84,13 @@
         "xlocnum": "cpp",
         "xloctime": "cpp",
         "xtr1common": "cpp",
-        "camera.h": "c"
+        "camera.h": "c",
+        "any": "cpp",
+        "bitset": "cpp",
+        "unordered_set": "cpp",
+        "regex": "cpp",
+        "typeindex": "cpp",
+        "variant": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
