@@ -1,15 +1,10 @@
 #include "../headers/FrameProcessor.hpp"
 
-FrameProcessor::FrameProcessor(int sliceCount, double meanIntensityMult,
-                               int minThreshold, int maxThreshold, bool debug)
-    : slices(sliceCount),
-      meanIntensityMult(meanIntensityMult),
-      minThreshold(minThreshold),
-      maxThreshold(maxThreshold),
-      debugMode(debug) 
+FrameProcessor::FrameProcessor(int sliceCount) : slices(sliceCount)
 {
     // Allocate the return distance array
     distances = new int[slices]{};
+    confidences = new double[slices]{};
 }
 
 FrameProcessor::~FrameProcessor()
@@ -25,14 +20,39 @@ FrameProcessor::~FrameProcessor()
 void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned int width,
                                   const uint8_t* buffer) 
 {
-
+    // Create an OpenCV Mat from the mapped buffer
     frame = cv::Mat(height, width, CV_8UC4, const_cast<uint8_t*>(buffer));
 
+    // Crop the frame to the bottom 3/4ths height (Removes background interference)
+    int cropStartY = height / 4;
+    cv::Rect roi(0, cropStartY, width, height - cropStartY);
+    frame = frame(roi);
+
+    // Convert to grayscale
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGRA2GRAY);
 
     // Preprocess the grayscale image: Gaussian blur to reduce noise
     cv::GaussianBlur(gray, gray, cv::Size(5, 5), 0);
+
+    // Apply erosion
+    int erosionSize = 10;
+    cv::Mat erosionKernel = cv::getStructuringElement(
+        cv::MORPH_RECT,
+        cv::Size(2 * erosionSize + 1, 2 * erosionSize + 1)
+    );
+    cv::erode(gray, gray, erosionKernel);
+
+    // Apply dilation after erosion
+    int dilationSize = 10;
+    cv::Mat dilationKernel = cv::getStructuringElement(
+        cv::MORPH_RECT, 
+        cv::Size(2 * dilationSize + 1, 2 * dilationSize + 1)
+    );
+    cv::dilate(gray, gray, dilationKernel);
+
+    int darkGrayThreshold = 110;
+    cv::threshold(gray, gray, darkGrayThreshold, 255, cv::THRESH_BINARY);
 
     // Compute slice height for the bottom half
     int sliceHeight = gray.rows / slices;
@@ -48,7 +68,7 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
         cv::Point contourCenter = processSlice(slice, i, frame, sliceHeight);
         contourCenters.push_back(contourCenter);
 
-        if (debugMode) 
+        if (DEBUG_MODE) 
         {
             // Draw red slice center dot
             int sliceMiddleX = slice.cols / 2;
@@ -60,7 +80,7 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
         }
     }
 
-    if (debugMode)
+    if (DEBUG_MODE)
     {
         // Draw blue lines connecting all white dots
         for (size_t i = 1; i < contourCenters.size(); ++i) 
@@ -86,8 +106,7 @@ cv::Point FrameProcessor::processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &
 {
     // Apply threshold & morphological closing to clean up noise and fill small gaps
     cv::Mat thresh;
-    int thresholdValue = std::clamp(static_cast<int>(cv::mean(slice)[0] * meanIntensityMult), minThreshold, maxThreshold);
-    cv::threshold(slice, thresh, thresholdValue, 255, cv::THRESH_BINARY_INV);
+    cv::threshold(slice, thresh, 110, 255, cv::THRESH_BINARY_INV);
     cv::morphologyEx(thresh, thresh, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
 
     // Find contours
@@ -121,8 +140,9 @@ cv::Point FrameProcessor::processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &
     double extent = cv::contourArea(mainContour) / static_cast<double>(cv::boundingRect(mainContour).area());
 
     distances[sliceIndex] = distance;
+    confidences[sliceIndex] = extent;
 
-    if (debugMode) 
+    if (DEBUG_MODE) 
     {
         // Draw the green contour and white center dot
         cv::Rect sliceROI(0, sliceIndex * sliceHeight, slice.cols, sliceHeight);
@@ -160,9 +180,14 @@ struct timespec FrameProcessor::currentTime()
 
 void FrameProcessor::getDistances(int * distanceBuffer)
 {
-    return;
-    //std::copy(distances, distances+sizeof(distances), distanceBuffer);
+    std::copy(distances, distances+sizeof(distances), distanceBuffer);
 }
+
+void FrameProcessor::getConfidences(double * confidenceBuffer)
+{
+    std::copy(confidences, confidences+sizeof(confidences), confidenceBuffer);
+}
+
 
 // static struct timespec previous;
 // // Measured things go here

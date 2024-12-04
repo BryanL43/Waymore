@@ -14,6 +14,7 @@ typedef void Camera; // Intermediate for C compatibility
 Camera * initializeCamera(const int pixelWidth, const int pixelHeight, const int slices);
 void startCamera();
 void getCameraLineDistances(int * distanceBuffer);
+void getCameraLineConfidences(double * confidenceBuffer);
 void uninitializeCamera();
 
 #ifdef __cplusplus

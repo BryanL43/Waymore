@@ -29,7 +29,7 @@ CameraSensor::CameraSensor(const int horizontalSlices)
     //std::cout << "Acquired cam: " << cam->id() << std::endl;
 
     // Create & config frame processor
-    frameProcessor = std::make_unique<FrameProcessor>(horizontalSlices, 0.95, 120, 180, false);
+    frameProcessor = std::make_unique<FrameProcessor>(horizontalSlices);
 }
 
 int CameraSensor::configCamera( const uint_fast32_t width,
@@ -186,6 +186,11 @@ void CameraSensor::getLineDistances(int * distanceBuffer)
     return frameProcessor->getDistances(distanceBuffer);
 }
 
+void CameraSensor::getConfidences(double * confidenceBuffer) 
+{
+    return frameProcessor->getConfidences(confidenceBuffer);
+}
+
 // ============================================================================================= //
 // Stopping and Destroying the Camera instance
 // ============================================================================================= //
@@ -201,7 +206,7 @@ CameraSensor::~CameraSensor()
     shuttingDown = true;
 
     // Wait for a short duration to make sure the current fillRequest() function has been exited
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Stop the camera
     cam->stop();

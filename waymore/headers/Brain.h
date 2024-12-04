@@ -37,6 +37,7 @@
 // Definitions of Constants
 // ============================================================================================= //
 
+#define TIMESTEP_MS 1.0
 #define CAMWIDTH 640
 #define CAMHEIGHT 480
 #define CAMSLICES 4
@@ -52,6 +53,7 @@ typedef struct SensoryData
 
     // Camera Readings
     int * cameraLineDistances;
+    double * cameraLineConfidences;
 
     // Lidar Readings
     //...
@@ -67,9 +69,9 @@ void signalHandler(int sig);
 // Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-void initializeLibraries();
+void initialize();
 
-void uninitializeLibraries();
+void uninitialize();
 
 void startSenses();
 

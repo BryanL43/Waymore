@@ -30,7 +30,7 @@ void initializePID();
 
 double calculateLineSensorError(int * lineSensorReadings);
 
-int calculateSpeedLimit(int * cameraLineDistances);
+int calculateSpeedLimit(double * cameraLineConfidences);
 
 double calculateControlSignal(double error);
 

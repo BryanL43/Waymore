@@ -38,7 +38,7 @@ void signalHandler(int sig)
 // Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-void initializeLibraries()
+void initialize()
 {
     /*
     ** Any libraries needed should be called here, and nowhere else.
@@ -60,9 +60,10 @@ void initializeLibraries()
     initializePID();
 
     senseData.cameraLineDistances = malloc(sizeof(int)*CAMSLICES);
+    senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
 }
 
-void uninitializeLibraries()
+void uninitialize()
 {
     /*
     **  Uninitialize any previously initialized libraries here.
@@ -75,6 +76,7 @@ void uninitializeLibraries()
     uninitializeCamera();
 
     free(senseData.cameraLineDistances);
+    free(senseData.cameraLineConfidences);
 }
 
 void startSenses()
@@ -113,15 +115,17 @@ void mainLoop()
 
     while(running)
     {
-        senseData.lineSensorReadings = getLineSensorReadings();
-        getCameraLineDistances(senseData.cameraLineDistances);
-        printf("Line distance (camera): %d\n", senseData.cameraLineDistances[CAMSLICES-1]);
+        //senseData.lineSensorReadings = getLineSensorReadings();
+        //double error = calculateLineSensorError(senseData.lineSensorReadings);
 
-        int speedLimit = calculateSpeedLimit(senseData.cameraLineDistances);
-        double error = calculateLineSensorError(senseData.lineSensorReadings);
-        double signal = calculateControlSignal(error);
-        applyControlSignal(signal, speedLimit);
-        milliWait(1);
+        getCameraLineDistances(senseData.cameraLineDistances);
+        getCameraLineConfidences(senseData.cameraLineConfidences);
+        int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
+        
+        //double signal = calculateControlSignal(error);
+        //applyControlSignal(signal, speedLimit);
+        //milliWait(TIMESTEP_MS);
+        milliWait(1000);
     }
 }
 
@@ -133,7 +137,7 @@ int main(int argc, char* argv[])
 {
     printf("\nWelcome to Waymore.\n");
     // Initialize all the necessary libraries
-    initializeLibraries();
+    initialize();
 
     // Start the sensing threads
     startSenses();
@@ -149,7 +153,7 @@ int main(int argc, char* argv[])
     stopSenses();
 
     // Uninitialize the libraries
-    uninitializeLibraries();
+    uninitialize();
 
     // Exit
     printf("Goodbye!\n");

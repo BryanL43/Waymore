@@ -33,6 +33,7 @@ public:
                     const StreamRole role);
     void startCamera();
     void getLineDistances(int * distanceBuffer);
+    void getConfidences(double * confidenceBuffer);
     ~CameraSensor();
 
 private:
