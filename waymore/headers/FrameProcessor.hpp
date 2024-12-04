@@ -14,7 +14,7 @@ class FrameProcessor {
 
         void processFrame(cv::Mat &frame, unsigned int height, unsigned int width,
                             const uint8_t* buffer);
-        int * getDistances();
+        void getDistances(int * distanceBuffer);
 
     private:
         int slices;

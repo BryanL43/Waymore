@@ -26,10 +26,8 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
                                   const uint8_t* buffer) 
 {
 
-    // Create an OpenCV Mat from the mapped buffer
     frame = cv::Mat(height, width, CV_8UC4, const_cast<uint8_t*>(buffer));
 
-    // Convert the cropped frame to grayscale
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGRA2GRAY);
 
@@ -160,9 +158,10 @@ struct timespec FrameProcessor::currentTime()
 	return ts;
 }
 
-int * FrameProcessor::getDistances()
+void FrameProcessor::getDistances(int * distanceBuffer)
 {
-    return distances;
+    return;
+    //std::copy(distances, distances+sizeof(distances), distanceBuffer);
 }
 
 // static struct timespec previous;

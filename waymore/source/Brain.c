@@ -58,6 +58,8 @@ void initializeLibraries()
 
     // Initialize PID controller
     initializePID();
+
+    senseData.cameraLineDistances = malloc(sizeof(int)*CAMSLICES);
 }
 
 void uninitializeLibraries()
@@ -71,6 +73,8 @@ void uninitializeLibraries()
     uninitializeMotorHat();
     uninitializeGPIO();
     uninitializeCamera();
+
+    free(senseData.cameraLineDistances);
 }
 
 void startSenses()
@@ -109,13 +113,15 @@ void mainLoop()
 
     while(running)
     {
-        senseData.cameraLineDistances = getCameraLineDistances();
-        //int speedLimit = calculateSpeedLimit(senseData.cameraLineDistances);
-
         senseData.lineSensorReadings = getLineSensorReadings();
-        double error = calculateError(senseData.lineSensorReadings);
+        getCameraLineDistances(senseData.cameraLineDistances);
+        printf("Line distance (camera): %d\n", senseData.cameraLineDistances[CAMSLICES-1]);
+
+        int speedLimit = calculateSpeedLimit(senseData.cameraLineDistances);
+        double error = calculateLineSensorError(senseData.lineSensorReadings);
         double signal = calculateControlSignal(error);
-        applyControlSignal(signal, 330);
+        applyControlSignal(signal, speedLimit);
+        milliWait(1);
     }
 }
 

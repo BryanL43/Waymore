@@ -51,13 +51,13 @@ void startCamera() {
     }
 }
 
-int* getCameraLineDistances() {
+void getCameraLineDistances(int * distanceBuffer) {
     if (!camera) {
         std::cerr << "No camera initialized!" << std::endl;
-        return nullptr;
+        return;
     }
 
-    return camera->getLineDistances();
+    return camera->getLineDistances(distanceBuffer);
 }
 
 void uninitializeCamera() 

@@ -32,7 +32,7 @@ public:
                     const PixelFormat pixelFormat, 
                     const StreamRole role);
     void startCamera();
-    int * getLineDistances();
+    void getLineDistances(int * distanceBuffer);
     ~CameraSensor();
 
 private:
