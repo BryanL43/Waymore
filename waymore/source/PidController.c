@@ -58,8 +58,9 @@ double calculateLineSensorError(int * lineSensorReadings)
             activeSensorCount++;
         }
     }
+    
     double error = sum/activeSensorCount;
-    return;
+    return error;
 }
 
 double calculateControlSignal(double error)
