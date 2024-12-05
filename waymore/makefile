@@ -3,9 +3,9 @@ CC = gcc
 CXX = g++
 
 # Flags
-CFLAGS = -Wall -g -I./headers -I/usr/include/libcamera \
+CFLAGS = -Wall -g -I./headers -I./source -I/usr/include/libcamera \
 		 -I/usr/include/opencv4 -D USE_BCM2835_LIB
-CXXFLAGS = -Wall -g -I/usr/include/opencv4 -I/usr/include/libcamera -std=c++17
+CXXFLAGS = -Wall -g -I/usr/include/libcamera -I/usr/include/opencv4 -std=c++17 -O2 -DDEBUG_ON
 
 # Libraries
 LIBS = -lstdc++ -lcamera -lcamera-base -lopencv_core -lopencv_imgcodecs \
@@ -39,19 +39,19 @@ $(TARGET): $(COBJECTS) $(CPPOBJECTS)
 # Compile C++ files
 $(OUTDIR)/%.o: source/%.cpp
 	@mkdir -p $(OUTDIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) -c $< -o $@ $(CXXFLAGS)
 
 # Compile C files
 $(OUTDIR)/%.o: source/%.c
 	@mkdir -p $(OUTDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -c $< -o $@ $(CFLAGS)
 
 $(OUTDIR)/%.o: libraries/%.c
 	@mkdir -p $(OUTDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -c $< -o $@ $(CFLAGS)
 
 # Run target
-run:
+run: $(TARGET)
 	sudo ./$(TARGET)
 
 # Clean target

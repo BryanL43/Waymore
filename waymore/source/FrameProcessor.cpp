@@ -14,6 +14,7 @@ FrameProcessor::~FrameProcessor()
 
     // Free the distances memory
     delete[] distances;
+    delete[] confidences;
 }
 
 
@@ -95,9 +96,11 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
         }
     }
 
-    // // Display the processed result
-    // cv::imshow("Camera Feed - Bottom Half", frame);
-    // cv::waitKey(1);
+    // Display the processed result
+    // if (DEBUG_MODE) {
+    //     cv::imshow("Camera Feed", frame);
+    //     cv::waitKey(1);
+    // }
 }
 
 

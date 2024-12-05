@@ -115,17 +115,16 @@ void mainLoop()
 
     while(running)
     {
-        //senseData.lineSensorReadings = getLineSensorReadings();
-        //double error = calculateLineSensorError(senseData.lineSensorReadings);
-
+        senseData.lineSensorReadings = getLineSensorReadings();
         getCameraLineDistances(senseData.cameraLineDistances);
         getCameraLineConfidences(senseData.cameraLineConfidences);
-        int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
         
-        //double signal = calculateControlSignal(error);
-        //applyControlSignal(signal, speedLimit);
-        //milliWait(TIMESTEP_MS);
-        milliWait(1000);
+        double error = calculateLineSensorError(senseData.lineSensorReadings);
+        //double error = calculateCameraError(senseData.cameraLineDistances);
+        double controlSignal = calculateControlSignal(error);
+        int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
+        applyControlSignal(controlSignal, speedLimit);
+        milliWait(TIMESTEP_MS);
     }
 }
 

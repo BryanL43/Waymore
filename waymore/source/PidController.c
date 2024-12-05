@@ -15,7 +15,7 @@
 
 #include "../headers/PidController.h"
 
-#define MAXSPEED 1000.0
+#define MAXSPEED 300.0
 
 double lineSensorPositions[LINESENSORCOUNT];
 int maxPixelDist = CAMWIDTH/2;
@@ -26,7 +26,7 @@ void initializePID()
     printf("Initializing PID controller...");
 
     // Configure initial PID gain settings
-    gain.proportional = 1.0;
+    gain.proportional = 5.0;
     gain.integral = 0.0;
     gain.derivative = 0.0;
 
@@ -43,20 +43,30 @@ double calculateLineSensorError(int * lineSensorReadings)
 {
     double sum = 0.0;
     double activeSensorCount = 0.0;
-    printf("Line sensor values:");
+    //printf("Line sensor values:");
     for (int i=0; i<LINESENSORCOUNT; i++)
     {
-        printf(" %d", lineSensorReadings[i]);
+        //printf(" %d", lineSensorReadings[i]);
         if (lineSensorReadings[i] == 0)
         {
             sum += (double) lineSensorPositions[i];
             activeSensorCount++;
         }
     }
-    printf("\n");
+    //printf("\n");
 
     double error = sum/activeSensorCount;
     return error;
+}
+
+double calculateCameraError(int * cameraLineDistances)
+{
+    double sum = 0.0;
+    for (int i=0; i<CAMSLICES; i++)
+    {
+        sum += (double)cameraLineDistances[i];
+    }
+    return sum/(double)CAMSLICES;
 }
 
 double calculateControlSignal(double error)
@@ -86,13 +96,13 @@ double calculateControlSignal(double error)
 int calculateSpeedLimit(double * cameraLineConfidences)
 {
     double avgConf = 0.0;
-    printf("Line Weights: ");
+    //printf("Line Weights: ");
     for (int i = 0; i < CAMSLICES; i++)
     {
-        printf(" %.2f", cameraLineConfidences[i]);
+        //printf(" %.2f", cameraLineConfidences[i]);
         avgConf += cameraLineConfidences[i];
     }
-    printf("\n");
+    //printf("\n");
 
     // Calculate average distance
     avgConf = fabs(avgConf) / (double)CAMSLICES;
@@ -105,31 +115,32 @@ int calculateSpeedLimit(double * cameraLineConfidences)
 
 void applyControlSignal(double controlSignal, int speedLimit)
 {
-    //printf("Control Signal: %.2f\n", controlSignal);
+    // Initial control signal:
+    printf("Control Signal: %.2f\n", controlSignal);
 
-    // Initialize both speeds at max
+    // Initial speeds:
     double speedLeft = MAXSPEED, speedRight = MAXSPEED;
-    //printf("Speeds: L %.2f\tR %.2f\n", speedLeft, speedRight);
+    printf("Speeds: L %.2f\tR %.2f\n", speedLeft, speedRight);
 
-    double normControl = MAXSPEED - (fabs(controlSignal) * (double)speedLimit / MAXSPEED);
+    // Normalized signal to 0-1000:
+    double normControl = (fabs(controlSignal) * (double)speedLimit / MAXSPEED);
+    printf("Normalized Control Signal: %.2f\n", normControl);
 
-    //printf("Normalized Control Signal: %.2f\n", normControl);
-
+    // APPLY CONTROL SIGNAL:
     // If error is greater than zero, we must go LEFT, so slow down the left tire
     if (controlSignal > 0)
     {
         speedLeft = speedLeft - normControl;
     }
-
     // If error less than zero, we must go RIGHT, so slow down the right tire
     if (controlSignal < 0)
     {
         speedRight = speedRight - normControl;
     }
-
     int left = speedLeft, right = speedRight;
 
-    //printf("L: %d\tR: %d\n", left, right);
+    // Finalized Control Signal
+    printf("L: %d\tR: %d\n", left, right);
 
-    //commandMotors(FORWARD, left, right);
+    commandMotors(FORWARD, left, right);
 }
