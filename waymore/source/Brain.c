@@ -48,7 +48,7 @@ void initialize()
     initializeGPIO();
 
     // Initialize camera library
-    initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
+    // initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
 
     // Initialize lidar library
     // ...
@@ -59,8 +59,8 @@ void initialize()
     // Initialize PID controller
     initializePID();
 
-    senseData.cameraLineDistances = malloc(sizeof(int)*CAMSLICES);
-    senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
+    // senseData.cameraLineDistances = malloc(sizeof(int)*CAMSLICES);
+    // senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
 }
 
 void uninitialize()
@@ -73,10 +73,10 @@ void uninitialize()
 
     uninitializeMotorHat();
     uninitializeGPIO();
-    uninitializeCamera();
+    // uninitializeCamera();
 
-    free(senseData.cameraLineDistances);
-    free(senseData.cameraLineConfidences);
+    // free(senseData.cameraLineDistances);
+    // free(senseData.cameraLineConfidences);
 }
 
 void startSenses()
@@ -87,7 +87,7 @@ void startSenses()
     */
 
     startIR();
-    startCamera();
+    // startCamera();
     //...
 }
 
@@ -116,14 +116,15 @@ void mainLoop()
     while(running)
     {
         senseData.lineSensorReadings = getLineSensorReadings();
-        getCameraLineDistances(senseData.cameraLineDistances);
-        getCameraLineConfidences(senseData.cameraLineConfidences);
+        
+        // getCameraLineDistances(senseData.cameraLineDistances);
+        // getCameraLineConfidences(senseData.cameraLineConfidences);
         
         double error = calculateLineSensorError(senseData.lineSensorReadings);
         //double error = calculateCameraError(senseData.cameraLineDistances);
         double controlSignal = calculateControlSignal(error);
-        int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
-        applyControlSignal(controlSignal, speedLimit);
+        // int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
+        applyControlSignal(controlSignal, 300);
         milliWait(TIMESTEP_MS);
     }
 }
