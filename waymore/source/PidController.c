@@ -1,24 +1,24 @@
 
 /**************************************************************
-* Class:: CSC-615-01 Spring 2024
-* Name:: Waymore Team
-* Student ID:: ...
-* Github-Name:: ...
-* Project:: Final Project
-*
-* File:: irPID.c
-*
-* Description:: Implementations for PID controller
-*				functionality
-*
-**************************************************************/
+ * Class:: CSC-615-01 Spring 2024
+ * Name:: Waymore Team
+ * Student ID:: ...
+ * Github-Name:: ...
+ * Project:: Final Project
+ *
+ * File:: irPID.c
+ *
+ * Description:: Implementations for PID controller
+ *				functionality
+ *
+ **************************************************************/
 
 #include "../headers/PidController.h"
 
 #define MAXSPEED 300.0
 
 double lineSensorPositions[LINESENSORCOUNT];
-int maxPixelDist = CAMWIDTH/2;
+int maxPixelDist = CAMWIDTH / 2;
 PIDGains gain;
 
 void initializePID()
@@ -26,47 +26,47 @@ void initializePID()
     printf("Initializing PID controller...");
 
     // Configure initial PID gain settings
-    gain.proportional = 5.0;
-    gain.integral = 0.0;
-    gain.derivative = 0.0;
+    gain.proportional = 100.0;
+    gain.integral = 0.1;
+    gain.derivative = 0.5;
 
     // Procedurally apply "position" values to each line sensor
-    for (int i=0; i<LINESENSORCOUNT; i++)
+    for (int i = 0; i < LINESENSORCOUNT; i++)
     {
-        lineSensorPositions[i] = (double)(i)-((double)(LINESENSORCOUNT-1) / 2);
-        printf("sensor %d position: %f\n", i+1, lineSensorPositions[i]);
+        lineSensorPositions[i] = (double)(i) - ((double)(LINESENSORCOUNT - 1) / 2);
+        printf("sensor %d position: %f\n", i + 1, lineSensorPositions[i]);
     }
     printf("done.\n");
 }
 
-double calculateLineSensorError(int * lineSensorReadings)
+double calculateLineSensorError(int *lineSensorReadings)
 {
     double sum = 0.0;
     double activeSensorCount = 0.0;
-    //printf("Line sensor values:");
-    for (int i=0; i<LINESENSORCOUNT; i++)
+    // printf("Line sensor values:");
+    printf("----------------------------\n");
+    for (int i = 0; i < LINESENSORCOUNT; i++)
     {
-        //printf(" %d", lineSensorReadings[i]);
+        // printf(" %d", lineSensorReadings[i]);
         if (lineSensorReadings[i] == 0)
         {
-            sum += (double) lineSensorPositions[i];
+            sum += lineSensorPositions[i];
             activeSensorCount++;
         }
     }
-    //printf("\n");
 
-    double error = sum/activeSensorCount;
+    double error = (activeSensorCount == 0.0) ? 0.0 : (sum / activeSensorCount);
     return error;
 }
 
-double calculateCameraError(int * cameraLineDistances)
+double calculateCameraError(int *cameraLineDistances)
 {
     double sum = 0.0;
-    for (int i=0; i<CAMSLICES; i++)
+    for (int i = 0; i < CAMSLICES; i++)
     {
         sum += (double)cameraLineDistances[i];
     }
-    return sum/(double)CAMSLICES;
+    return sum / (double)CAMSLICES;
 }
 
 double calculateControlSignal(double error)
@@ -93,16 +93,16 @@ double calculateControlSignal(double error)
     return pid;
 }
 
-int calculateSpeedLimit(double * cameraLineConfidences)
+int calculateSpeedLimit(double *cameraLineConfidences)
 {
     double avgConf = 0.0;
-    //printf("Line Weights: ");
+    // printf("Line Weights: ");
     for (int i = 0; i < CAMSLICES; i++)
     {
-        //printf(" %.2f", cameraLineConfidences[i]);
+        // printf(" %.2f", cameraLineConfidences[i]);
         avgConf += cameraLineConfidences[i];
     }
-    //printf("\n");
+    // printf("\n");
 
     // Calculate average distance
     avgConf = fabs(avgConf) / (double)CAMSLICES;
@@ -111,7 +111,6 @@ int calculateSpeedLimit(double * cameraLineConfidences)
 
     return speed;
 }
-
 
 void applyControlSignal(double controlSignal, int speedLimit)
 {
@@ -123,7 +122,8 @@ void applyControlSignal(double controlSignal, int speedLimit)
     printf("Speeds: L %.2f\tR %.2f\n", speedLeft, speedRight);
 
     // Normalized signal to 0-1000:
-    double normControl = (fabs(controlSignal) * (double)speedLimit / MAXSPEED);
+    // double normControl = (fabs(controlSignal) * (double)speedLimit / MAXSPEED);
+    double normControl = (fabs(controlSignal));
     printf("Normalized Control Signal: %.2f\n", normControl);
 
     // APPLY CONTROL SIGNAL:
