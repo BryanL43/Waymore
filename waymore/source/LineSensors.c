@@ -20,7 +20,7 @@
 
 Thread * lineSensorThread;
 int lineReadings[LINESENSORCOUNT];
-int lineSensorPins[] = {17, 27, 22, 18, 23, 24};
+int lineSensorPins[] = {17, 27, 22, 25, 23, 24};
 
 // ============================================================================================= //
 // Main Loop & Business Logic
