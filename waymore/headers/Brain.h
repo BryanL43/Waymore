@@ -37,7 +37,7 @@
 // Definitions of Constants
 // ============================================================================================= //
 
-#define TIMESTEP_MS 5.0
+#define TIMESTEP_MS 50.0
 #define CAMWIDTH 640
 #define CAMHEIGHT 480
 #define CAMSLICES 4
