@@ -17,7 +17,7 @@
 // Variables and states
 // ============================================================================================= //
 
-int running = TRUE;
+volatile int running = TRUE;
 SensoryData senseData;
 
 // ============================================================================================= //
@@ -88,7 +88,6 @@ void startSenses()
 
     startIR();
     // startCamera();
-    //...
 }
 
 void stopSenses()
@@ -99,7 +98,6 @@ void stopSenses()
     */
 
     stopIR();
-    //...
 }
 
 // ============================================================================================= //
@@ -119,10 +117,12 @@ void mainLoop()
         
         // getCameraLineDistances(senseData.cameraLineDistances);
         // getCameraLineConfidences(senseData.cameraLineConfidences);
-        
-        double error = calculateLineSensorError(senseData.lineSensorReadings);
-        //double error = calculateCameraError(senseData.cameraLineDistances);
-        double controlSignal = calculateControlSignal(error);
+        for (int i = 0; i < 6; i++) {
+            printf("\n Sensor %d: %d\n", i , senseData.lineSensorReadings[i]);
+        }
+        double IRError = calculateLineSensorError(senseData.lineSensorReadings);
+        // double cameraError = calculateCameraError(senseData.cameraLineDistances);
+        double controlSignal = calculateControlSignal(IRError, 0.0);
         // int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
         applyControlSignal(controlSignal, 300);
         milliWait(TIMESTEP_MS);
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
     // Start the sensing threads
     startSenses();
 
-	// Initialize Ctrl-C signal handler for safe stopping
+    // Initialize Ctrl-C signal handler for safe stopping
 	signal(SIGINT, signalHandler);
     printf("\nYou may now safely use Ctrl-C to exit.\n");
 
