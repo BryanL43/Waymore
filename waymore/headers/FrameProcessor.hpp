@@ -1,12 +1,6 @@
 #ifndef _FRAME_PROCESSOR_HPP_
 #define _FRAME_PROCESSOR_HPP_
 
-#ifdef DEBUG_ON
-    #define DEBUG_MODE 1
-#else
-    #define DEBUG_MODE 0
-#endif
-
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <vector>
