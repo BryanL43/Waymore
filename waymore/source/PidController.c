@@ -20,15 +20,26 @@
 double lineSensorPositions[LINESENSORCOUNT];
 int maxPixelDist = CAMWIDTH / 2;
 PIDGains gain;
+static int previousError = 0;
 
 void initializePID()
 {
     printf("Initializing PID controller...");
 
-    // Configure initial PID gain settings
-    gain.proportional = 100.0;
-    gain.integral = 0.1;
-    gain.derivative = 0.5;
+    // PID FOR STRAIGHT LINE
+    // gain.proportional = 120.0;
+    // gain.integral = 0.1;
+    // gain.derivative = 7;
+
+    // PID FOR CURVE LINE
+    // gain.proportional = 220.0;
+    // gain.integral = 2;
+    // gain.derivative = 2;
+
+    // PID FOR SHARP TURN
+    // gain.proportional = 10000.0;
+    // gain.integral = 2;
+    // gain.derivative = 2;
 
     // Procedurally apply "position" values to each line sensor
     for (int i = 0; i < LINESENSORCOUNT; i++)
@@ -43,8 +54,6 @@ double calculateLineSensorError(int *lineSensorReadings)
 {
     double sum = 0.0;
     double activeSensorCount = 0.0;
-    // printf("Line sensor values:");
-    printf("----------------------------\n");
     for (int i = 0; i < LINESENSORCOUNT; i++)
     {
         // printf(" %d", lineSensorReadings[i]);
@@ -62,33 +71,64 @@ double calculateLineSensorError(int *lineSensorReadings)
 double calculateCameraError(int *cameraLineDistances)
 {
     double sum = 0.0;
+    printf("**************** [ camera distances ] ****************\n");
     for (int i = 0; i < CAMSLICES; i++)
     {
+        printf("Camera slice: %d; value: %d\n", i, cameraLineDistances[i]);
         sum += (double)cameraLineDistances[i];
     }
+    printf("**************** [ end of camera distances ] ****************\n");
     return sum / (double)CAMSLICES;
 }
 
-double calculateControlSignal(double error)
+double calculateControlSignal(double IRError, double cameraError)
 {
-    static double previousError = 0;
     static double integral = 0;
 
-    // Define Proportional term
-    double P = gain.proportional * error;
+    // cameraError = fabs(cameraError);
+    // if (cameraError > 0 && cameraError <= 60) {
+    //     previousError = 0;
+    //     gain.derivative = 5;
+    //     gain.proportional = 90;
+    // } else if (cameraError > 60 && cameraError <= 120) {
+    //     previousError = 0;
+    //     gain.proportional = 150;
+    //     gain.derivative = 3;
+    //     gain.integral = 2;
+    // } else if (cameraError > 180) {
+    //     previousError = 0;
+    //     gain.proportional = 500;
+    //     gain.derivative = 3;
+    //     gain.integral = 3;
+    // }
 
-    // Define Integral term
-    integral += error * TIMESTEP_MS;
+    double P = gain.proportional * IRError;
+
+    // Integral term with anti-windup
+    integral += IRError * TIMESTEP_MS;
+    double max_integral = 100.0;
+    if (integral > max_integral)
+        integral = max_integral;
+    if (integral < -max_integral)
+        integral = -max_integral;
     double I = gain.integral * integral;
 
-    // Define Derivative term
-    double derivative = (previousError == 0) ? 0 : (error - previousError) / TIMESTEP_MS;
-    double D = gain.derivative * derivative;
+    // Derivative term with smoothing
+    static double smoothedError = 0;
+    double alpha = 0.1;
+    smoothedError = alpha * IRError + (1 - alpha) * smoothedError;
+    double D = gain.derivative * (smoothedError - previousError) / TIMESTEP_MS;
 
-    // Update previousError value for next iteration
-    previousError = error;
+    // Update previous error
+    previousError = smoothedError;
 
+    // PID output clamping
     double pid = P + I + D;
+    double max_pid = 255.0;
+    if (pid > max_pid)
+        pid = max_pid;
+    if (pid < -max_pid)
+        pid = -max_pid;
 
     return pid;
 }
@@ -137,10 +177,12 @@ void applyControlSignal(double controlSignal, int speedLimit)
     {
         speedRight = speedRight - normControl;
     }
-    int left = speedLeft, right = speedRight;
+    int left = speedLeft;
+    int right = speedRight;
+    // int left = 325, right = 300; // Motor not going straight :((
 
     // Finalized Control Signal
     printf("L: %d\tR: %d\n", left, right);
 
-    commandMotors(FORWARD, left, right);
+    commandMotors(FORWARD, 300, 0);
 }
