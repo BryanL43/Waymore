@@ -24,6 +24,7 @@ static  double              lineSensorPositions[LINESENSORCOUNT];
 static  PIDGains            gain;
 //static  LinePrediction      linePrediction;
 static  LastLineLocation    lastLineLocation;
+static  CurrentState        currentState;
 
 static double currentIntegral = 0;
 
@@ -31,11 +32,12 @@ void initializePID()
 {
     printf("Initializing PID controller:\n");
 
-    gain.proportional = 20.0;
-    gain.integral = 0.05;
-    gain.derivative = 0.10;
+    gain.proportional = 25.0;
+    gain.integral = 0.5;
+    gain.derivative = 1.0;
 
     lastLineLocation = DEADCENTER;
+    currentState = NORMAL;
 
     // Procedurally apply "position" values to each line sensor
     for (int i = 0; i < LINESENSORCOUNT; i++)
@@ -107,22 +109,15 @@ double validateError(double error)
             // If the line was last seen to the left of the car,
             // We should have a positive number for an error.
             // If we don't, we should change that.
-            if (isnan) verr = -3;
-
-            // Now we've made sure all signals will be going in
-            // the leftwards direction.
+            if (isnan) currentState = CORNERINGLEFT;
+            else currentState = NORMAL;
             break;
 
         case RIGHTOFCAR:
             //printf("Line is to the right\n");
-
-            // If the line was last seen to the right of the car,
-            // We should have a negative number for an error.
-            // If we don't, we should change that.
-            if(isnan(error)) verr = 3;
-
-            // Now we've made sure all signals will be going
-            // in the rightwards direction.
+            if(isnan) currentState = CORNERINGRIGHT;
+            else currentState = NORMAL;
+            
             break;
 
         case DEADCENTER:
@@ -130,15 +125,13 @@ double validateError(double error)
 
             // If the car was last seen dead center on the line,
             // We should probably not have any integral left hanging around.
+            // We should also set the state to NORMAL unless we've entered
+            // obstacle avoidance mode.
             currentIntegral = 0;
+            if(currentState != OBSTACLEAVOIDANCE) currentState = NORMAL;
 
-            // Also - if the current error is NAN, we're probably done..
-            // So we can return the NAN value as a stop signal.
-            if(isnan(error)) verr = NAN;
             break;
     }
-
-    printf("verror: %.2f\n", verr);
 
     return verr;
 }
@@ -179,26 +172,34 @@ int calculateSpeedLimit(double * cameraLineDistances)
 
 void applyControlSignal(double controlSignal)
 {
-    // If the signal is nan, that's a stop flag.
-    if (isnan(controlSignal)) 
+    switch (currentState)
     {
-        commandMotors(HALT, 0, 0);
+        case NORMAL:
+            // Calculate speeds
+            double speedLeft = BASESPEED + controlSignal;
+            double speedRight = BASESPEED - controlSignal;
+
+            // convert to ints, with rounding
+            int left = (int)(speedLeft + 0.5);
+            int right = (int)(speedRight + 0.5);
+
+            // Print & check:
+            //printf("L: %d\tR: %d\n", left, right);
+
+            // Send power to the wheels
+            commandMotors(FORWARD, left, right);
+            break;
+
+        case CORNERINGLEFT:
+            commandMotors(ROTATELEFT, 50, 50);
+            break;
+        
+        case CORNERINGRIGHT:
+            commandMotors(ROTATERIGHT, 50, 50);
+            break;
+
+        case OBSTACLEAVOIDANCE:
+            // Do stuff
+            break;
     }
-
-    // Initial control signal:
-    //printf("Control Signal: %.2f\n", controlSignal);
-
-    // Calculate speeds:
-    double speedLeft = BASESPEED + controlSignal;
-    double speedRight = BASESPEED - controlSignal;
-
-    // Calculate integers with rounding:
-    int left = (int)(speedLeft + 0.5);
-    int right = (int)(speedRight + 0.5);
-
-    // Print & check:
-    //printf("L: %d\tR: %d\n", left, right);
-
-    // Send power to the wheels
-    commandMotors(FORWARD, left, right);
 }

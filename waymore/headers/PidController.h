@@ -48,7 +48,7 @@ typedef enum CurrentState
     CORNERINGLEFT,
     CORNERINGRIGHT,
     OBSTACLEAVOIDANCE
-}CurrentState
+}CurrentState;
 
 void initializePID();
 
