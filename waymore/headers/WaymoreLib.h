@@ -27,6 +27,11 @@
 #include <sys/mman.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <signal.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <bcm2835.h>
+#include <math.h>
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -54,9 +59,6 @@ typedef enum RegisterOffset{
 #define ON		1
 #define OFF		0
 
-#define HIGH	1
-#define LOW		0
-
 #define IN		0
 #define OUT		1
 
@@ -67,45 +69,35 @@ typedef enum RegisterOffset{
 #define FALSE	0
 
 // ============================================================================================= //
-// Validation functions
-// ============================================================================================= //
-
-void validatePin(int pin);
-void validateLevel(int level);
-void validateDirection(int direction);
-
-// ============================================================================================= //
-// Initialization and Uninitialization Functions
+// GPIO Functions
 // ============================================================================================= //
 
 int initializeGPIO();
 int uninitializeGPIO();
-
-
-int initializeI2C();
-int registerDeviceI2C(uint8_t ADDR);
-int uninitializeI2C(uint8_t ADDR);
-
-// ============================================================================================= //
-// Primary Functions
-// ============================================================================================= //
-
 void setPinDirection(int pin, int direction);
 void setPinLevel(int pin, int level);
 int getPinLevel(int pin);
 
-int readBytesI2C(uint8_t ADDR, char * destBuffer, uint32_t count)
-int writeBytesI2C(uint8_t ADDR, char * sourceBuffer, uint32_t count);
 
 // ============================================================================================= //
-// Threading Initialization and Uninitialization Functions
+// I2C Functions
+// ============================================================================================= //
+
+int initializeI2C();
+int uninitializeI2C();
+void registerDeviceI2C(uint8_t ADDR);
+int readByteI2C(uint8_t ADDR, uint8_t reg);
+int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value);
+
+// ============================================================================================= //
+// Threading Functions
 // ============================================================================================= //
 
 Thread * startThread(const char * name, void*(*function)(void *));
 void stopThread(Thread * thread);
 
 // =============================================================================== //
-// Time Related Functions
+// Time Functions
 // =============================================================================== //
 
 // Interruptable waiting

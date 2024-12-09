@@ -37,7 +37,7 @@
 // Definitions of Constants
 // ============================================================================================= //
 
-#define TIMESTEP_MS 1.0 // 1KHz
+#define TIMESTEP_MS 1 // 200 Hz
 #define CAMWIDTH 640
 #define CAMHEIGHT 480
 #define CAMSLICES 4

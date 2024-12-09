@@ -37,10 +37,10 @@ void * lineSensorThreadLoop(void * args)
         for (int i = 0; i < LINESENSORCOUNT; i++)
         {
             /*
-            ** When the pins are HIGH (1), that means NO LINE.
-            ** When the pins are LOW (0), that means it's over black.
+            ** When the pins are HIGH (1), that means LINE.
+            ** When the pins are LOW (0), that means NO LINE.
             */
-            lineReadings[i] = getPinLevel(lineSensorPins[i]) == HIGH ? FALSE : TRUE;
+            lineReadings[i] = getPinLevel(lineSensorPins[i]);
         }
     }
 

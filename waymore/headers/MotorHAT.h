@@ -12,27 +12,26 @@
 *
 **************************************************************/
 
-#ifndef __PCA9685_H_
-#define __PCA9685_H_
+#ifndef _MOTOR_HAT_H_
+#define _MOTOR_HAT_H_
 
 // ============================================================================================= //
 // Library Linking
 // ============================================================================================= //
 
-#include <math.h>
 #include "WaymoreLib.h"
 
 // ============================================================================================= //
 // Library Functions
 // ============================================================================================= //
 
-int PCA9685_initialize(uint8_t ADDR);
+int registerMotorHat(uint8_t ADDR);
 
-int PCA9685_setPwmFrequency(uint16_t frequency);
+int setMotorHatFrequency(uint32_t frequency);
 
-int PCA9685_setPwmDutyCycle(uint8_t channel, uint8_t dutyCycle);
+void setDutyCycle(uint8_t motor, uint32_t pulse);
 
-int PCA9685_setLevel(uint8_t channel, uint8_t value);
+void setLevel(uint8_t wire, uint32_t value);
 
 // ============================================================================================= //
 // End of File

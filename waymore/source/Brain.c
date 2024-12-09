@@ -17,7 +17,7 @@
 // Variables and states
 // ============================================================================================= //
 
-volatile int running = TRUE;
+int running = TRUE;
 SensoryData senseData;
 
 // ============================================================================================= //
@@ -47,8 +47,12 @@ void initialize()
     // Initialize register access GPIO library
     initializeGPIO();
 
+    // Initialize I2C library
+    initializeI2C();
+
     // Initialize camera library
     // initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
+
 
     // Initialize lidar library
     // ...
@@ -70,8 +74,7 @@ void uninitialize()
     */
 
     printf("\nUninitializing each library...\n");
-
-    uninitializeMotorHat();
+    
     uninitializeGPIO();
     // uninitializeCamera();
 
@@ -123,6 +126,9 @@ void mainLoop()
         
         milliWait(TIMESTEP_MS);
     }
+
+    // Stop the motors and exit
+    commandMotors(HALT, 0, 0);
 }
 
 // ============================================================================================= //
@@ -140,7 +146,12 @@ int main(int argc, char* argv[])
 
     // Initialize Ctrl-C signal handler for safe stopping
 	signal(SIGINT, signalHandler);
-    printf("\nYou may now safely use Ctrl-C to exit.\n");
+    printf("\nYou may now safely use Ctrl-C to exit.\nStarting main loop in\n3...\n");
+    milliWait(333);
+    printf("2...\n");
+    milliWait(333);
+    printf("1...\n");
+    milliWait(333);
 
     // Begin the main loop (Ctrl-C to exit)
     mainLoop();

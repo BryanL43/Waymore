@@ -42,6 +42,14 @@ typedef enum LinePrediction
     MISSING
 }LinePrediction;
 
+typedef enum CurrentState
+{
+    NORMAL,
+    CORNERINGLEFT,
+    CORNERINGRIGHT,
+    OBSTACLEAVOIDANCE
+}CurrentState
+
 void initializePID();
 
 double calculateError(int * lineSensorReadings);

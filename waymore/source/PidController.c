@@ -22,26 +22,26 @@ int maxPixelDist = CAMWIDTH / 2;
 
 static  double              lineSensorPositions[LINESENSORCOUNT];
 static  PIDGains            gain;
-static  LinePrediction      linePrediction;
+//static  LinePrediction      linePrediction;
 static  LastLineLocation    lastLineLocation;
 
 static double currentIntegral = 0;
 
 void initializePID()
 {
-    printf("Initializing PID controller...");
+    printf("Initializing PID controller:\n");
 
-    gain.proportional = 1.0;
-    gain.currentIntegral = 0.05;
+    gain.proportional = 20.0;
+    gain.integral = 0.05;
     gain.derivative = 0.10;
 
-    lineLocation = DEADCENTER;
+    lastLineLocation = DEADCENTER;
 
     // Procedurally apply "position" values to each line sensor
     for (int i = 0; i < LINESENSORCOUNT; i++)
     {
         lineSensorPositions[i] = (double)(i) - ((double)(LINESENSORCOUNT - 1) / 2);
-        printf("sensor %d position: %f\n", i + 1, lineSensorPositions[i]);
+        printf("sensor %d position: %.2f\n", i + 1, lineSensorPositions[i]);
     }
     printf("done.\n");
 }
@@ -50,17 +50,17 @@ double calculateError(int * lineSensorReadings)
 {
     double sum = 0.0;
     int activeSensorCount = 0;
-    // printf("Line readings: ");
+    //printf("Line readings: ");
     for (int i = 0; i < LINESENSORCOUNT; i++)
     {
-        // printf(" %d", lineSensorReadings[i]);
-        if (lineSensorReadings[i] == 0)
+        //printf(" %d", lineSensorReadings[i]);
+        if (lineSensorReadings[i] == TRUE)
         {
             sum += lineSensorPositions[i];
             activeSensorCount++;
         }
     }
-    // printf("\n");
+    //printf("\n");
 
     // Return "not a number" in cases where completely off the line.
     if (activeSensorCount == 0) return NAN;
@@ -68,10 +68,23 @@ double calculateError(int * lineSensorReadings)
     double error = sum / activeSensorCount;
 
     // Interpret which side of the line we are currently on
-    if      (error > 0) lineLocation = LEFTOFCAR;
-    else if (error < 0) lineLocation = RIGHTOFCAR;
-    else                lineLocation = DEADCENTER;
+    if (error < 0){
+        lastLineLocation = LEFTOFCAR;
+        //printf("Line is to the left\n");
+    }
+    else if (error > 0)
+    {
+        lastLineLocation = RIGHTOFCAR;
+        //printf("Line is to the right\n");
+    }
+    else
+    {
+        lastLineLocation = DEADCENTER;
+        //printf("Line is dead center\n");
+    }
 
+    //printf("error: %.2f\n", error);
+    
     return error;
 }
 
@@ -83,39 +96,38 @@ void interpretCameraDistances(double * cameraLineDistances)
 
 double validateError(double error)
 {
-    double verr = 0.0;
+    int isnan = isnan(error);
+    double verr = error;
 
     switch (lastLineLocation)
     {
         case LEFTOFCAR:
+            //printf("Line is to the left\n");
+
             // If the line was last seen to the left of the car,
             // We should have a positive number for an error.
             // If we don't, we should change that.
-            if (isnan(error)) verr = 1;
-
-            // If the current integral is going in the
-            // wrong direction, zero it out.
-            if (currentIntegral < 0) currentIntegral = 0;
+            if (isnan) verr = -3;
 
             // Now we've made sure all signals will be going in
             // the leftwards direction.
             break;
 
         case RIGHTOFCAR:
+            //printf("Line is to the right\n");
+
             // If the line was last seen to the right of the car,
             // We should have a negative number for an error.
             // If we don't, we should change that.
-            if(isnan(error)) verr = -1;
-
-            // If the current integral is going in the
-            // wrong direction, zero it out.
-            if (currentIntegral > 0) currentIntegral = 0;
+            if(isnan(error)) verr = 3;
 
             // Now we've made sure all signals will be going
             // in the rightwards direction.
             break;
 
         case DEADCENTER:
+            //printf("Line is dead center\n");
+
             // If the car was last seen dead center on the line,
             // We should probably not have any integral left hanging around.
             currentIntegral = 0;
@@ -125,6 +137,8 @@ double validateError(double error)
             if(isnan(error)) verr = NAN;
             break;
     }
+
+    printf("verror: %.2f\n", verr);
 
     return verr;
 }
@@ -141,7 +155,7 @@ double calculateControlSignal(double error)
 
     // Calculate I
     currentIntegral += error * TIMESTEP_MS;
-    double I = gain.currentIntegral * currentIntegral;
+    double I = gain.integral * currentIntegral;
 
     // Calculate D
     double D = gain.derivative * (error - previousError) / TIMESTEP_MS;
@@ -172,18 +186,18 @@ void applyControlSignal(double controlSignal)
     }
 
     // Initial control signal:
-    printf("Control Signal: %.2f\n", controlSignal);
+    //printf("Control Signal: %.2f\n", controlSignal);
 
     // Calculate speeds:
-    double speedLeft = BASESPEED - controlSignal;
-    double speedRight = BASESPEED + controlSignal;
+    double speedLeft = BASESPEED + controlSignal;
+    double speedRight = BASESPEED - controlSignal;
 
     // Calculate integers with rounding:
     int left = (int)(speedLeft + 0.5);
     int right = (int)(speedRight + 0.5);
 
     // Print & check:
-    printf("L: %d\tR: %d\n", left, right);
+    //printf("L: %d\tR: %d\n", left, right);
 
     // Send power to the wheels
     commandMotors(FORWARD, left, right);

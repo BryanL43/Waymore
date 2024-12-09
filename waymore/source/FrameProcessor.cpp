@@ -69,7 +69,7 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
         cv::Point contourCenter = processSlice(slice, i, frame, sliceHeight);
         contourCenters.push_back(contourCenter);
 
-        if (DEBUG_MODE) 
+        if (DEBUG_ON) 
         {
             // Draw red slice center dot
             int sliceMiddleX = slice.cols / 2;
@@ -81,7 +81,7 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
         }
     }
 
-    if (DEBUG_MODE)
+    if (DEBUG_ON)
     {
         // Draw blue lines connecting all white dots
         for (size_t i = 1; i < contourCenters.size(); ++i) 
@@ -97,7 +97,7 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
     }
 
     // Display the processed result
-    // if (DEBUG_MODE) {
+    // if (DEBUG_ON) {
     //     cv::imshow("Camera Feed", frame);
     //     cv::waitKey(1);
     // }
@@ -145,7 +145,7 @@ cv::Point FrameProcessor::processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &
     distances[sliceIndex] = distance;
     confidences[sliceIndex] = extent;
 
-    if (DEBUG_MODE) 
+    if (DEBUG_ON) 
     {
         // Draw the green contour and white center dot
         cv::Rect sliceROI(0, sliceIndex * sliceHeight, slice.cols, sliceHeight);

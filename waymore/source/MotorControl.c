@@ -19,13 +19,13 @@
 // ============================================================================================= //
 
 #define MOTORHATADDR 0x40
-#define MOTORHATFREQ 1000
+#define DEFAULTFREQ  1000
 
 #define LEFTMOTOR	0
-#define AIN1	1
-#define AIN2	2
-#define BIN1	3
-#define BIN2	4
+#define AIN1		1
+#define AIN2		2
+#define BIN1		3
+#define BIN2		4
 #define RIGHTMOTOR	5
 
 // ============================================================================================= //
@@ -46,30 +46,20 @@ void initializeMotorHat()
 
 	printf("Initializing waveshare motor HAT...");
 
-	int res = DEV_ModuleInit();
-	if (res != 0)
-	{
-		perror("initializeMotorHat: Error initializing DEV_Module - exiting.");
-		exit(1);
-	}
-
-	PCA9685_Initialize(MOTORHATADDR);
-	PCA9685_setPwmFrequency(MOTORHATFREQ);
-
-	milliWait(1);
-
+	registerMotorHat(MOTORHATADDR);
+	setMotorHatFrequency(DEFAULTFREQ);
 	commandMotors(HALT, 0, 0);
 
-	printf("Motor HAT initialized.\n");
+	printf("done.\n");
 }
 
 void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 {
 	// Validate the speed inputs on both motors
-	if (leftSpeed > 1000) leftSpeed = 1000;
+	if (leftSpeed > 100) leftSpeed = 100;
 	else if (leftSpeed < 0) leftSpeed = 0;
 
-    if (rightSpeed > 1000) rightSpeed = 1000;
+    if (rightSpeed > 100) rightSpeed = 100;
 	else if (rightSpeed < 0) rightSpeed = 0;
 
 	switch (action)
@@ -78,81 +68,76 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 			// Apply the current direction if different
 			if (action != currentAction)
 			{
-				PCA9685_setLevel(AIN1, 1);
-				PCA9685_setLevel(AIN2, 0);
-				PCA9685_setLevel(BIN1, 0);
-				PCA9685_setLevel(BIN2, 1);
+				setLevel(AIN1, 0);
+				setLevel(AIN2, 1);
+				setLevel(BIN1, 1);
+				setLevel(BIN2, 0);
 				currentAction = action;
 			}
 			// Set the speeds
-			PCA9685_setPwmDutyCycle(LEFTMOTOR, leftSpeed*0.80);
-			PCA9685_setPwmDutyCycle(RIGHTMOTOR, rightSpeed);
+			setDutyCycle(LEFTMOTOR, leftSpeed);
+			setDutyCycle(RIGHTMOTOR, rightSpeed);
 			break;
 		case (ROTATELEFT):
 			// Apply the current direction if different
 			if (action != currentAction)
 			{
-				PCA9685_setLevel(AIN1, 0);
-				PCA9685_setLevel(AIN2, 1);
-				PCA9685_setLevel(BIN1, 0);
-				PCA9685_setLevel(BIN2, 1);
+				setLevel(AIN1, 1);
+				setLevel(AIN2, 0);
+				setLevel(BIN1, 1);
+				setLevel(BIN2, 0);
 				currentAction = action;
 			}
 
 			// Set the speeds (both using leftSpeed)
-			PCA9685_setPwmDutyCycle(LEFTMOTOR, leftSpeed);
-			PCA9685_setPwmDutyCycle(RIGHTMOTOR, leftSpeed);
+			setDutyCycle(LEFTMOTOR, leftSpeed);
+			setDutyCycle(RIGHTMOTOR, leftSpeed);
 			break;
 		case (ROTATERIGHT):
 			// Apply the current direction if different
 			if (action != currentAction)
 			{
-				PCA9685_setLevel(AIN1, 1);
-				PCA9685_setLevel(AIN2, 0);
-				PCA9685_setLevel(BIN1, 1);
-				PCA9685_setLevel(BIN2, 0);
+				setLevel(AIN1, 0);
+				setLevel(AIN2, 1);
+				setLevel(BIN1, 0);
+				setLevel(BIN2, 1);
 				currentAction = action;
 			}
 
 			// Set the speeds (both using leftSpeed)
-			PCA9685_setPwmDutyCycle(LEFTMOTOR, leftSpeed);
-			PCA9685_setPwmDutyCycle(RIGHTMOTOR, leftSpeed);
+			setDutyCycle(LEFTMOTOR, leftSpeed);
+			setDutyCycle(RIGHTMOTOR, leftSpeed);
 			break;
 		case (BACKWARD):
 			// Apply the current direction if different
 			if (action != currentAction)
 			{
-				PCA9685_setLevel(AIN1, 0);
-				PCA9685_setLevel(AIN2, 1);
-				PCA9685_setLevel(BIN1, 1);
-				PCA9685_setLevel(BIN2, 0);
+				setLevel(AIN1, 1);
+				setLevel(AIN2, 0);
+				setLevel(BIN1, 0);
+				setLevel(BIN2, 1);
 				currentAction = action;
 			}
 			// Set the speeds
-			PCA9685_setPwmDutyCycle(LEFTMOTOR, leftSpeed);
-			PCA9685_setPwmDutyCycle(RIGHTMOTOR, rightSpeed);
+			setDutyCycle(LEFTMOTOR, leftSpeed);
+			setDutyCycle(RIGHTMOTOR, rightSpeed);
 			break;
 		case (HALT):
 			// Apply the current direction if different
 			if (action != currentAction)
 			{
-				PCA9685_setLevel(AIN1, 0);
-				PCA9685_setLevel(AIN2, 0);
-				PCA9685_setLevel(BIN1, 0);
-				PCA9685_setLevel(BIN2, 0);
+				setLevel(AIN1, 0);
+				setLevel(AIN2, 0);
+				setLevel(BIN1, 0);
+				setLevel(BIN2, 0);
 				currentAction = action;
 			}
 			// Set the speeds
-			PCA9685_setPwmDutyCycle(LEFTMOTOR, 0);
-			PCA9685_setPwmDutyCycle(RIGHTMOTOR, 0);
+			setDutyCycle(LEFTMOTOR, 0);
+			setDutyCycle(RIGHTMOTOR, 0);
 			break;
 	}
 	milliWait(1);
-}
-
-void uninitializeMotorHat()
-{
-	commandMotors(HALT, 0, 0);
 }
 
 // ============================================================================================= //

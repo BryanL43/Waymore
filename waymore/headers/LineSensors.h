@@ -26,7 +26,7 @@
 // ============================================================================================= //
 
 // Counts for each sensor type currently on rig
-#define LINESENSORCOUNT 6
+#define LINESENSORCOUNT 7
 
 // ============================================================================================= //
 // Start and Stop Functions

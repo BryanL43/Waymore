@@ -19,7 +19,7 @@
 // Library Linking
 // ============================================================================================= //
 
-#include "PCA9685.h"
+#include "MotorHAT.h"
 
 // ============================================================================================= //
 // Definitions of Structures or States
@@ -41,11 +41,10 @@ typedef enum MotorAction
 void commandMotors(MotorAction action, int leftSpeed, int rightSpeed);
 
 // ============================================================================================= //
-// Initialization and Uninitialization Functions
+// Initialization
 // ============================================================================================= //
 
 void initializeMotorHat();
-void uninitializeMotorHat();
 
 // ============================================================================================= //
 // End of File

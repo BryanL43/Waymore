@@ -155,67 +155,56 @@ int uninitializeGPIO()
 
 int initializeI2C()
 {
-	if (i2cBus >= 0)
-	{
-		fprintf(stderr, "The I2C bus has already been initialized!\n");
-		return -1;
-	}
-
-    // Open the I2C bus
-    if ((i2cBus = open(I2CBUS, O_RDWR)) < 0) 
-	{
-        fprintf(stderr, "Failed to open the I2C bus!\n");
-        return -1;
-    }
+	printf("Initializing I2C...");
 
     // Initialize a spinlock to only allow one
     // thread to communicate over the bus at a time
     if (pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE) != 0)
     {
-        fprintf(stderr, "Failed to initialize the I2C spinlock!\n", ADDR);
+        fprintf(stderr, "Failed to initialize the I2C spinlock!\n");
         if(close(i2cBus) < 0)
         {
-            fprintf(stderr, "Failed to close I2C bus!\n", ADDR);
+            fprintf(stderr, "Failed to close I2C bus!\n");
             return -1;
         }
         return -1;
     }
 
+	if (bcm2835_init() == FALSE)
+	{
+		fprintf(stderr, "Failed to initialize I2C bus: BCM2835_init failed!\n");
+		return -1;
+	}
+	else
+	{
+		bcm2835_i2c_begin(); // this is a void function.
+	}
+
+	printf("done.\n");
 	return 0;
 }
 
-int registerDeviceI2C(uint8_t ADDR)
+void registerDeviceI2C(uint8_t ADDR)
 {
-    // Initialize a device at the given address
-    if (ioctl(i2cBus, I2C_SLAVE, ADDR) < 0) {
-        fprintf(stderr, "Failed to initialize the I2C device at address %02x!\n", ADDR);
-        if(close(i2cBus) < 0)
-        {
-            fprintf(stderr, "Failed to close the I2C bus!\n", ADDR);
-            return -1;
-        }
-        return -1;
-    }
-
-	return 0;
+	bcm2835_i2c_setSlaveAddress(ADDR);
 }
 
-int uninitializeI2C(uint8_t ADDR)
+int uninitializeI2C()
 {
-    if (i2cBus < 0)
+	// Stop bcm i2c functionality (void function)
+	bcm2835_i2c_end();
+
+	// Close bcm library
+    if(bcm2835_close() == FALSE)
     {
-        printf("There is no i2cBus open at %02x\n", ADDR);
+        fprintf(stderr, "Failed to close I2C bus: bcm2835_close() failed.\n");
         return -1;
     }
 
-    if(close(i2cBus) < 0)
+	// Spin lock is the last to go for safety
+	if(pthread_spin_destroy(&lock) < 0)
     {
-        fprintf(stderr, "Failed to close I2C i2cBus at address %02x\n", ADDR);
-        if(pthread_spin_destroy(&lock) < 0)
-        {
-            fprintf(stderr, "Failed to destroy the I2C spinlock!\n", ADDR);
-            return -1;
-        }
+        fprintf(stderr, "Failed to destroy the I2C spinlock!\n");
         return -1;
     }
 
@@ -300,14 +289,16 @@ int getPinLevel(int pin)
 	return (level != 0) ? HIGH : LOW;
 }
 
-int readBytesI2C(uint8_t ADDR, char * destBuffer, uint32_t count)
+int readByteI2C(uint8_t ADDR, uint8_t reg)
 {
+	char buffer[2] = {0};
+
     if (pthread_spin_lock(&lock) != 0)
     {
         // should only occurs if the calling thread already has the lock
         // or if the lock argument is invalid.
         printf("I2C Spinlock error!\n");
-        return -1;
+		return -1;
     }
     
     if (currentI2cAddr != ADDR)
@@ -317,12 +308,9 @@ int readBytesI2C(uint8_t ADDR, char * destBuffer, uint32_t count)
         bcm2835_i2c_setSlaveAddress(ADDR);
     }
     
-	int bytesRead = bcm2835_i2c_read(destBuffer, count);
-    if ( bytesRead < count)
+    if (bcm2835_i2c_read_register_rs((char*)&reg, buffer, 2) != BCM2835_I2C_REASON_OK)
     {
-        fprintf(stderr, 
-            "Failed to read all %d bytes from I2C address %02x!\n",
-            count, ADDR);
+        fprintf(stderr, "Failed to read bytes from I2C address 0x%02x!\n", ADDR);
         return -1;
     }
 
@@ -334,12 +322,12 @@ int readBytesI2C(uint8_t ADDR, char * destBuffer, uint32_t count)
         return -1;
     }
 
-	return bytesRead;
+	return buffer[0];
 }
 
-int writeBytesI2C(uint8_t ADDR, char * sourceBuffer, uint32_t count)
+int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value)
 {
-    if (pthread_spin_lock(&lock) < != 0)
+	if (pthread_spin_lock(&lock) != 0)
     {
         // should only occurs if the calling thread already has the lock
         // or if the lock argument is invalid.
@@ -353,12 +341,11 @@ int writeBytesI2C(uint8_t ADDR, char * sourceBuffer, uint32_t count)
         bcm2835_i2c_setSlaveAddress(ADDR);
     }
 
-	int bytesWritten = bcm2835_i2c_write(sourceBuffer, count);
-    if (bytesWritten < count)
+	char buffer[2] = {reg, value};
+
+    if (bcm2835_i2c_write(buffer, 2) != BCM2835_I2C_REASON_OK)
     {
-        fprintf(stderr, 
-            "Failed to write all %d bytes to I2C address %02x!\n",
-            count, ADDR);
+        fprintf(stderr, "Failed to write bytes to I2C address 0x%02x!\n", ADDR);
         return -1;
     }
 
@@ -370,9 +357,8 @@ int writeBytesI2C(uint8_t ADDR, char * sourceBuffer, uint32_t count)
         return -1;
     }
 
-	return bytesWritten;
+	return 0;
 }
-
 
 // ============================================================================================= //
 // Threading Initialization and Uninitialization Functions
