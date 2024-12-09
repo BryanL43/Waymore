@@ -19,12 +19,7 @@
 // Library Linking
 // ============================================================================================= //
 
-#include <stdlib.h>
-#include <signal.h>
-#include <sys/param.h>
-#include "WaymoreLib.h"
-#include "../libraries/PCA9685.h"
-#include "../libraries/DEV_Config.h"
+#include "PCA9685.h"
 
 // ============================================================================================= //
 // Definitions of Structures or States

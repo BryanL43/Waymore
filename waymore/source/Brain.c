@@ -114,17 +114,13 @@ void mainLoop()
     while(running)
     {
         senseData.lineSensorReadings = getLineSensorReadings();
+
+        double error = calculateError(senseData.lineSensorReadings);
+
+        double controlSignal = calculateControlSignal(error);
+
+        applyControlSignal(controlSignal);
         
-        // getCameraLineDistances(senseData.cameraLineDistances);
-        // getCameraLineConfidences(senseData.cameraLineConfidences);
-        for (int i = 0; i < 6; i++) {
-            printf("\n Sensor %d: %d\n", i , senseData.lineSensorReadings[i]);
-        }
-        double IRError = calculateLineSensorError(senseData.lineSensorReadings);
-        // double cameraError = calculateCameraError(senseData.cameraLineDistances);
-        double controlSignal = calculateControlSignal(IRError, 0.0);
-        // int speedLimit = calculateSpeedLimit(senseData.cameraLineConfidences);
-        applyControlSignal(controlSignal, 300);
         milliWait(TIMESTEP_MS);
     }
 }

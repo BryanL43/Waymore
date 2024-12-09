@@ -12,8 +12,8 @@
 *
 **************************************************************/
 
-#ifndef _WAYMORELIB_H_
-#define _WAYMORELIB_H_
+#ifndef _WAYMORE_LIB_H_
+#define _WAYMORE_LIB_H_
 
 // ============================================================================================= //
 // Library Linking
@@ -28,7 +28,6 @@
 #include <stdint.h>
 #include <pthread.h>
 
-
 // ============================================================================================= //
 // Definitions of Structures
 // ============================================================================================= //
@@ -40,6 +39,12 @@ typedef struct Thread
 	int running;
 }Thread;
 
+typedef enum RegisterOffset{
+    SEL = 0x00,
+    SET = 0x1C,
+    CLR = 0x28,
+    RD = 0x34,
+}RegisterOffset;
 
 // ============================================================================================= //
 // Definitions of Constants
@@ -66,40 +71,38 @@ typedef struct Thread
 // ============================================================================================= //
 
 void validatePin(int pin);
-
 void validateLevel(int level);
-
 void validateDirection(int direction);
 
+// ============================================================================================= //
+// Initialization and Uninitialization Functions
+// ============================================================================================= //
+
+int initializeGPIO();
+int uninitializeGPIO();
+
+
+int initializeI2C();
+int registerDeviceI2C(uint8_t ADDR);
+int uninitializeI2C(uint8_t ADDR);
 
 // ============================================================================================= //
-// GPIO Initialization and Uninitialization Functions
-// ============================================================================================= //
-
-void initializeGPIO();
-
-void uninitializeGPIO();
-
-
-// ============================================================================================= //
-// GPIO Primary Functions
+// Primary Functions
 // ============================================================================================= //
 
 void setPinDirection(int pin, int direction);
-
 void setPinLevel(int pin, int level);
-
 int getPinLevel(int pin);
 
+int readBytesI2C(uint8_t ADDR, char * destBuffer, uint32_t count)
+int writeBytesI2C(uint8_t ADDR, char * sourceBuffer, uint32_t count);
 
 // ============================================================================================= //
 // Threading Initialization and Uninitialization Functions
 // ============================================================================================= //
 
 Thread * startThread(const char * name, void*(*function)(void *));
-
 void stopThread(Thread * thread);
-
 
 // =============================================================================== //
 // Time Related Functions

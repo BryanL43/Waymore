@@ -15,34 +15,31 @@
 #include "../headers/WaymoreLib.h"
 
 // ============================================================================================= //
-// Definitions of Constants (private to waymoreLib)
+// Definitions of (private) Constants
 // ============================================================================================= //
 
-// Memory Offset Configuration
-typedef enum Offset{
-    SEL = 0x00,
-    SET = 0x1C,
-    CLR = 0x28,
-    RD = 0x34,
-}Offset;
+// Pertaining to GPIO functionality
+#define GPIOBASE 0xfe200000
+#define MMAPBLOCKSIZE 4096
 
-// MMAP Configuration
-#define GPIO_BASE_ADDRESS 0xfe200000
-#define MEMORY_BLOCK_SIZE 4096
+// Pertaining to I2C functionality
+#define I2CBUS "/dev/i2c-1"
 
 // ============================================================================================= //
 // Internal variables and states
 // ============================================================================================= //
 
-// Main gpio mapping
+// Pertaining to GPIO functionality
 volatile uint32_t * gpio;
-
-// Convert byte offsets to index (integer) offsets
 int selectIdx	= SEL >> 2;
 int setIdx	    = SET >> 2;
 int clearIdx	= CLR >> 2;
 int readIdx	    = RD  >> 2;
 
+// Pertaining to I2C functionality
+int i2cBus = -1;
+uint8_t currentI2cAddr = -1;
+pthread_spinlock_t lock;
 
 // ============================================================================================= //
 // Validation functions
@@ -88,7 +85,7 @@ void validateDirection(int direction)
 // GPIO Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-void initializeGPIO()
+int initializeGPIO()
 {
 	/*
 	** initGPIO opens the /dev/mem device file which allows
@@ -103,38 +100,127 @@ void initializeGPIO()
 	int mem = open("/dev/mem", O_RDWR | O_SYNC);
 	if (mem == -1)
 	{
-		perror("initializeGPIO: Failed to open /dev/mem");
-		exit(1);
+		fprintf(stderr, "Failed to open dev/mem for memory mapping!\n");
+		return -1;
 	}
 
 	// map the GPIO pins into memory, catching errors
 	gpio = (volatile uint32_t *) mmap(NULL,
-					  MEMORY_BLOCK_SIZE,
+					  MMAPBLOCKSIZE,
 					  PROT_READ | PROT_WRITE,
 					  MAP_SHARED,
 					  mem,
-					  GPIO_BASE_ADDRESS);
+					  GPIOBASE);
+
 	if (gpio == MAP_FAILED)
 	{
-		perror("initializeGPIO: Memory mapping failed");
-		close(mem);
-		exit(1);
+		fprintf(stderr, "GPIO memory mapping failed!\n");
+		if (close(mem) != 0)
+		{
+			fprintf(stderr, "Failed to close dev/mem!\n");
+		}
+		return -1;
+	}
+
+	// Close file and return
+	if (close(mem) != 0)
+	{
+		fprintf(stderr, "Failed to close dev/mem!\n");
+		return -1;
 	}
 
 	printf("done.\n");
-	// Close file and return
-	close(mem);
+	return 0;
 }
 
-void uninitializeGPIO()
+int uninitializeGPIO()
 {
-	if(gpio != NULL)
+	// Check that the memory is currently mapped
+	if (gpio == NULL)
 	{
-		munmap((void *)gpio, MEMORY_BLOCK_SIZE);
-		gpio = NULL;
+		fprintf(stderr, "Warning: GPIO was already uninitialized!\n");
+        return 1;
 	}
+
+	// Attempt to unmap the memory
+	if (munmap((void *)gpio, MMAPBLOCKSIZE) < 0)
+	{
+		fprintf(stderr, "Error: munmap failed in uninitializeGPIO");
+		return -1;
+	}
+	gpio = NULL;
+
+	return 0;
 }
 
+int initializeI2C()
+{
+	if (i2cBus >= 0)
+	{
+		fprintf(stderr, "The I2C bus has already been initialized!\n");
+		return -1;
+	}
+
+    // Open the I2C bus
+    if ((i2cBus = open(I2CBUS, O_RDWR)) < 0) 
+	{
+        fprintf(stderr, "Failed to open the I2C bus!\n");
+        return -1;
+    }
+
+    // Initialize a spinlock to only allow one
+    // thread to communicate over the bus at a time
+    if (pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE) != 0)
+    {
+        fprintf(stderr, "Failed to initialize the I2C spinlock!\n", ADDR);
+        if(close(i2cBus) < 0)
+        {
+            fprintf(stderr, "Failed to close I2C bus!\n", ADDR);
+            return -1;
+        }
+        return -1;
+    }
+
+	return 0;
+}
+
+int registerDeviceI2C(uint8_t ADDR)
+{
+    // Initialize a device at the given address
+    if (ioctl(i2cBus, I2C_SLAVE, ADDR) < 0) {
+        fprintf(stderr, "Failed to initialize the I2C device at address %02x!\n", ADDR);
+        if(close(i2cBus) < 0)
+        {
+            fprintf(stderr, "Failed to close the I2C bus!\n", ADDR);
+            return -1;
+        }
+        return -1;
+    }
+
+	return 0;
+}
+
+int uninitializeI2C(uint8_t ADDR)
+{
+    if (i2cBus < 0)
+    {
+        printf("There is no i2cBus open at %02x\n", ADDR);
+        return -1;
+    }
+
+    if(close(i2cBus) < 0)
+    {
+        fprintf(stderr, "Failed to close I2C i2cBus at address %02x\n", ADDR);
+        if(pthread_spin_destroy(&lock) < 0)
+        {
+            fprintf(stderr, "Failed to destroy the I2C spinlock!\n", ADDR);
+            return -1;
+        }
+        return -1;
+    }
+
+	return 0;
+}
 
 // ============================================================================================= //
 // GPIO Primary Functions
@@ -214,6 +300,79 @@ int getPinLevel(int pin)
 	return (level != 0) ? HIGH : LOW;
 }
 
+int readBytesI2C(uint8_t ADDR, char * destBuffer, uint32_t count)
+{
+    if (pthread_spin_lock(&lock) != 0)
+    {
+        // should only occurs if the calling thread already has the lock
+        // or if the lock argument is invalid.
+        printf("I2C Spinlock error!\n");
+        return -1;
+    }
+    
+    if (currentI2cAddr != ADDR)
+    {
+        // Set the address to the desired device if necessary (void function)
+        currentI2cAddr = ADDR;
+        bcm2835_i2c_setSlaveAddress(ADDR);
+    }
+    
+	int bytesRead = bcm2835_i2c_read(destBuffer, count);
+    if ( bytesRead < count)
+    {
+        fprintf(stderr, 
+            "Failed to read all %d bytes from I2C address %02x!\n",
+            count, ADDR);
+        return -1;
+    }
+
+    if (pthread_spin_unlock(&lock) != 0)
+    {
+        // should only occurs if the calling thread already has the lock
+        // or if the lock argument is invalid.
+        fprintf(stderr, "I2C spinlock error: failed to unlock!\n");
+        return -1;
+    }
+
+	return bytesRead;
+}
+
+int writeBytesI2C(uint8_t ADDR, char * sourceBuffer, uint32_t count)
+{
+    if (pthread_spin_lock(&lock) < != 0)
+    {
+        // should only occurs if the calling thread already has the lock
+        // or if the lock argument is invalid.
+        fprintf(stderr, "I2C spinlock failed!\n");
+        return -1;
+    }
+
+    if(currentI2cAddr != ADDR)
+    {
+        currentI2cAddr = ADDR;
+        bcm2835_i2c_setSlaveAddress(ADDR);
+    }
+
+	int bytesWritten = bcm2835_i2c_write(sourceBuffer, count);
+    if (bytesWritten < count)
+    {
+        fprintf(stderr, 
+            "Failed to write all %d bytes to I2C address %02x!\n",
+            count, ADDR);
+        return -1;
+    }
+
+    if (pthread_spin_unlock(&lock) != 0)
+    {
+        // should only occurs if the calling thread already has the lock
+        // or if the lock argument is invalid.
+        fprintf(stderr, "I2C spinlock error: failed to unlock!\n");
+        return -1;
+    }
+
+	return bytesWritten;
+}
+
 
 // ============================================================================================= //
 // Threading Initialization and Uninitialization Functions
@@ -226,7 +385,7 @@ Thread * startThread(const char * name, void* (*function) (void *))
 	{
 		fprintf(stderr, "Failed to start %s: "
 				"function cannot be null.\n", name);
-		exit(1);
+		return NULL;
 	}
 
 	// Validate the name
@@ -238,7 +397,7 @@ Thread * startThread(const char * name, void* (*function) (void *))
 	if (thread == NULL)
 	{
 		fprintf(stderr, "Failed to allocate memory for '%s'\n", name);
-		exit(1);
+		return NULL;
 	}
 
 	thread->name = strdup(name);
@@ -246,7 +405,7 @@ Thread * startThread(const char * name, void* (*function) (void *))
 	{
 		fprintf(stderr, "Failed to allocate memory for name of thread\n");
 		free(thread);
-		exit(1);
+		return NULL;
 	}
 
 	// Spin up the thread
@@ -258,7 +417,7 @@ Thread * startThread(const char * name, void* (*function) (void *))
 		thread->running = 0;
 		free(thread->name);
 		free(thread);
-		exit(1);
+		return NULL;
 	}
 
 	return thread;

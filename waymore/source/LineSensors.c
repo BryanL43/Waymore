@@ -20,7 +20,9 @@
 
 Thread * lineSensorThread;
 int lineReadings[LINESENSORCOUNT];
-int lineSensorPins[] = {17, 27, 22, 25, 23, 24};
+
+// GPIO pins connected in ascending order, left to right (blue/purple wires)
+int lineSensorPins[] = {5, 17, 22, 23, 24, 25, 27};
 
 // ============================================================================================= //
 // Main Loop & Business Logic
@@ -35,11 +37,10 @@ void * lineSensorThreadLoop(void * args)
         for (int i = 0; i < LINESENSORCOUNT; i++)
         {
             /*
-            ** TODO:
-            **      Find out whether black line yields HIGH or LOW values.
-            **      for now it's just returning raw value.
+            ** When the pins are HIGH (1), that means NO LINE.
+            ** When the pins are LOW (0), that means it's over black.
             */
-            lineReadings[i] = getPinLevel(lineSensorPins[i]);
+            lineReadings[i] = getPinLevel(lineSensorPins[i]) == HIGH ? FALSE : TRUE;
         }
     }
 

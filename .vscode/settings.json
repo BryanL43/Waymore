@@ -90,7 +90,8 @@
         "unordered_set": "cpp",
         "regex": "cpp",
         "typeindex": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "pidcontroller.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

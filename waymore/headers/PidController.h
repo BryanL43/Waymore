@@ -26,16 +26,30 @@ typedef struct PIDGains
     double derivative;
 }PIDGains;
 
+typedef enum LastLineLocation
+{
+    LEFTOFCAR,
+    DEADCENTER,
+    RIGHTOFCAR
+}LastLineLocation;
+
+typedef enum LinePrediction
+{
+    STRAIGHT,
+    CURVE,
+    CORNERLEFT,
+    CORNERRIGHT,
+    MISSING
+}LinePrediction;
+
 void initializePID();
 
-double calculateLineSensorError(int * lineSensorReadings);
+double calculateError(int * lineSensorReadings);
 
-double calculateCameraError(int * getCameraLineDistances);
-
-int calculateSpeedLimit(double * cameraLineConfidences);
+void interpretCameraDistances(double * cameraLineDistances);
 
 double calculateControlSignal(double error);
 
-void applyControlSignal(double controlSignal, int speed);
+void applyControlSignal(double controlSignal);
 
 #endif
