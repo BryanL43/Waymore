@@ -32,9 +32,9 @@ void initializePID()
 {
     printf("Initializing PID controller:\n");
 
-    gain.proportional = 25.0;
-    gain.integral = 0.5;
-    gain.derivative = 1.0;
+    gain.proportional = 10.0;
+    gain.integral = 0.05;
+    gain.derivative = 5.0;
 
     lastLineLocation = DEADCENTER;
     currentState = NORMAL;
@@ -191,11 +191,11 @@ void applyControlSignal(double controlSignal)
             break;
 
         case CORNERINGLEFT:
-            commandMotors(ROTATELEFT, 50, 50);
+            commandMotors(ROTATELEFT, 25, 50);
             break;
         
         case CORNERINGRIGHT:
-            commandMotors(ROTATERIGHT, 50, 50);
+            commandMotors(ROTATERIGHT, 50, 25);
             break;
 
         case OBSTACLEAVOIDANCE:
