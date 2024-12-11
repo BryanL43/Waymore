@@ -13,8 +13,8 @@
 *
 **************************************************************/
 
-#ifndef _IR_PID_H_
-#define _IR_PID_H_
+#ifndef _COGNITION_H_
+#define _COGNITION_H_
 
 #include <math.h>
 #include "Brain.h"

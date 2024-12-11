@@ -3,7 +3,7 @@
 FrameProcessor::FrameProcessor(int sliceCount) : slices(sliceCount)
 {
     // Allocate the return distance array
-    distances = new int[slices]{};
+    distances = new double[slices]{};
     confidences = new double[slices]{};
 }
 
@@ -52,8 +52,21 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
     );
     cv::dilate(gray, gray, dilationKernel);
 
-    int darkGrayThreshold = 110;
+    // Threshold to filter shadows/color noise
+    int darkGrayThreshold = 100;
     cv::threshold(gray, gray, darkGrayThreshold, 255, cv::THRESH_BINARY);
+
+    // Set non-black pixels to white
+    for (int y = 0; y < gray.rows; y++) {
+        for (int x = 0; x < gray.cols; x++) {
+            if (gray.at<uint8_t>(y, x) != 0) {
+                gray.at<uint8_t>(y, x) = 255;
+            }
+        }
+    }
+
+    // Update the input frame to the processed grayscale image
+    cv::cvtColor(gray, frame, cv::COLOR_GRAY2BGRA);
 
     // Compute slice height for the bottom half
     int sliceHeight = gray.rows / slices;
@@ -68,39 +81,7 @@ void FrameProcessor::processFrame(cv::Mat &frame, unsigned int height, unsigned 
         // Process each slice and get the contour center
         cv::Point contourCenter = processSlice(slice, i, frame, sliceHeight);
         contourCenters.push_back(contourCenter);
-
-        if (DEBUG_ON) 
-        {
-            // Draw red slice center dot
-            int sliceMiddleX = slice.cols / 2;
-            int sliceMiddleY = sliceHeight / 2 + startSliceY;
-            cv::circle(frame, cv::Point(sliceMiddleX, sliceMiddleY), 5, cv::Scalar(0, 0, 255), -1);
-
-            // Draw pink line connecting the white dot to the red dot
-            cv::line(frame, contourCenter, cv::Point(sliceMiddleX, contourCenter.y), cv::Scalar(255, 20, 147), 2);
-        }
     }
-
-    if (DEBUG_ON)
-    {
-        // Draw blue lines connecting all white dots
-        for (size_t i = 1; i < contourCenters.size(); ++i) 
-        {
-            cv::line(frame, contourCenters[i - 1], contourCenters[i], cv::Scalar(255, 0, 0), 2, cv::LINE_8, 0);
-        }
-
-        // Draw a blue line from the first to the last contour center
-        if (contourCenters.size() > 1) 
-        {
-            cv::line(frame, contourCenters.front(), contourCenters.back(), cv::Scalar(255, 0, 0), 2, cv::LINE_8, 0);
-        }
-    }
-
-    // Display the processed result
-    // if (DEBUG_ON) {
-    //     cv::imshow("Camera Feed", frame);
-    //     cv::waitKey(1);
-    // }
 }
 
 
@@ -116,9 +97,21 @@ cv::Point FrameProcessor::processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(thresh, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
+    // Filter contours by area
+    const double minContourArea = 100.0;
+    contours.erase(
+        std::remove_if(contours.begin(), contours.end(),
+            [minContourArea](const std::vector<cv::Point>& contour) {
+                return cv::contourArea(contour) < minContourArea;
+            }),
+        contours.end()
+    );
+
     // No contours found; return the center of the slice for continuity
     if (contours.empty()) 
     {
+        distances[sliceIndex] = std::numeric_limits<double>::quiet_NaN();
+        confidences[sliceIndex] = std::numeric_limits<double>::quiet_NaN();
         return cv::Point(slice.cols / 2, sliceHeight / 2 + sliceIndex * sliceHeight);
     }
 
@@ -137,29 +130,13 @@ cv::Point FrameProcessor::processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &
 
     // Calculate distance from the center of the slice to the contour's center
     int sliceMiddleX = slice.cols / 2;
-    int distance = sliceMiddleX - contourCenterX;
+    double distance = (double) (sliceMiddleX - contourCenterX);
 
     // Calculate extent of the contour
     double extent = cv::contourArea(mainContour) / static_cast<double>(cv::boundingRect(mainContour).area());
 
     distances[sliceIndex] = distance;
     confidences[sliceIndex] = extent;
-
-    if (DEBUG_ON) 
-    {
-        // Draw the green contour and white center dot
-        cv::Rect sliceROI(0, sliceIndex * sliceHeight, slice.cols, sliceHeight);
-        cv::drawContours(frame(sliceROI), std::vector<std::vector<cv::Point>>{mainContour}, -1, cv::Scalar(0, 255, 0), 2);
-        cv::circle(frame, cv::Point(contourCenterX, contourCenterY + sliceIndex * sliceHeight), 5, cv::Scalar(255, 255, 255), -1);
-
-        // Display the calculated distance and extent
-        cv::putText(frame, "Dist: " + std::to_string(distance),
-                    cv::Point(contourCenterX + 20, contourCenterY + sliceIndex * sliceHeight - 10),
-                    cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(200, 0, 200), 2);
-        cv::putText(frame, "Weight: " + std::to_string(extent),
-                    cv::Point(contourCenterX + 20, contourCenterY + sliceIndex * sliceHeight + 20),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(200, 0, 200), 1);
-    }
 
     // Return the center of the contour
     return cv::Point(contourCenterX, contourCenterY + sliceIndex * sliceHeight);
@@ -181,7 +158,7 @@ struct timespec FrameProcessor::currentTime()
 	return ts;
 }
 
-void FrameProcessor::getDistances(int * distanceBuffer)
+void FrameProcessor::getDistances(double * distanceBuffer)
 {
     std::copy(distances, distances+sizeof(distances), distanceBuffer);
 }
@@ -190,10 +167,3 @@ void FrameProcessor::getConfidences(double * confidenceBuffer)
 {
     std::copy(confidences, confidences+sizeof(confidences), confidenceBuffer);
 }
-
-
-// static struct timespec previous;
-// // Measured things go here
-// struct timespec current = currentTime();
-// printTimeBetween(&previous, &current);
-// previous = current;

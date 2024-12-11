@@ -13,12 +13,12 @@
  *
  **************************************************************/
 
-#include "../headers/PidController.h"
+#include "../headers/Cognition.h"
 
-#define BASESPEED 50
 #define MAXSPEED 100
 
 int maxPixelDist = CAMWIDTH / 2;
+int baseSpeed = 60;
 
 static  double              lineSensorPositions[LINESENSORCOUNT];
 static  PIDGains            gain;
@@ -90,12 +90,6 @@ double calculateError(int * lineSensorReadings)
     return error;
 }
 
-void interpretCameraDistances(double * cameraLineDistances)
-{
-    // TODO: use camera distances to decide when to enter/exit enumerated states
-    return;
-}
-
 double validateError(double error)
 {
     int isnan = isnan(error);
@@ -162,9 +156,8 @@ double calculateControlSignal(double error)
 
 int calculateSpeedLimit(double * cameraLineDistances)
 {
-    // Develop only after completing a working PID and state machine!
-
-    int speed = BASESPEED;
+    int speed = baseSpeed;
+    
     // TODO: use a case switch with enumerated states to set speeds
 
     return speed;
@@ -176,8 +169,8 @@ void applyControlSignal(double controlSignal)
     {
         case NORMAL:
             // Calculate speeds
-            double speedLeft = BASESPEED + controlSignal;
-            double speedRight = BASESPEED - controlSignal;
+            double speedLeft = baseSpeed + controlSignal;
+            double speedRight = baseSpeed - controlSignal;
 
             // convert to ints, with rounding
             int left = (int)(speedLeft + 0.5);
@@ -191,11 +184,11 @@ void applyControlSignal(double controlSignal)
             break;
 
         case CORNERINGLEFT:
-            commandMotors(ROTATELEFT, 25, 50);
+            commandMotors(ROTATELEFT, 50, 50);
             break;
         
         case CORNERINGRIGHT:
-            commandMotors(ROTATERIGHT, 50, 25);
+            commandMotors(ROTATERIGHT, 50, 50);
             break;
 
         case OBSTACLEAVOIDANCE:

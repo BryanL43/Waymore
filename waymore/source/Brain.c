@@ -17,7 +17,7 @@
 // Variables and states
 // ============================================================================================= //
 
-int running = TRUE;
+volatile int running = TRUE;
 SensoryData senseData;
 
 // ============================================================================================= //
@@ -51,7 +51,7 @@ void initialize()
     initializeI2C();
 
     // Initialize camera library
-    // initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
+    initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
 
 
     // Initialize lidar library
@@ -63,8 +63,8 @@ void initialize()
     // Initialize PID controller
     initializePID();
 
-    // senseData.cameraLineDistances = malloc(sizeof(int)*CAMSLICES);
-    // senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
+    senseData.cameraLineDistances = malloc(sizeof(double)*CAMSLICES);
+    senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
 }
 
 void uninitialize()
@@ -76,10 +76,10 @@ void uninitialize()
     printf("\nUninitializing each library...\n");
     
     uninitializeGPIO();
-    // uninitializeCamera();
+    uninitializeCamera();
 
-    // free(senseData.cameraLineDistances);
-    // free(senseData.cameraLineConfidences);
+    free(senseData.cameraLineDistances);
+    free(senseData.cameraLineConfidences);
 }
 
 void startSenses()
@@ -90,7 +90,7 @@ void startSenses()
     */
 
     startIR();
-    // startCamera();
+    startCamera();
 }
 
 void stopSenses()
@@ -118,7 +118,12 @@ void mainLoop()
     {
         senseData.lineSensorReadings = getLineSensorReadings();
 
+        getCameraLineDistances(senseData.cameraLineDistances);
+
         double error = calculateError(senseData.lineSensorReadings);
+
+        // double testcamErr = calculateCameraError(senseData.cameraLineDistances);
+        // printf("Camera sum: %.2f\n", testcamErr);
 
         double controlSignal = calculateControlSignal(error);
 

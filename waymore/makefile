@@ -5,7 +5,7 @@ CXX = g++
 # Flags
 CFLAGS = -Wall -g -I./headers -I./source -I/usr/include/libcamera \
 		 -I/usr/include/opencv4 -D USE_BCM2835_LIB
-CXXFLAGS = -Wall -g -I/usr/include/libcamera -I/usr/include/opencv4 -std=c++17 -O2 -DDEBUG_ON
+CXXFLAGS = -Wall -g -I/usr/include/libcamera -I/usr/include/opencv4 -std=c++17 -O2
 
 # Libraries
 LIBS = -lstdc++ -lcamera -lcamera-base -lopencv_core -lopencv_imgcodecs \

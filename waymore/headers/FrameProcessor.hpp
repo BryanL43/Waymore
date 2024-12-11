@@ -4,7 +4,6 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include <mutex>
 
 class FrameProcessor {
     public:
@@ -15,13 +14,13 @@ class FrameProcessor {
         void processFrame(cv::Mat &frame, unsigned int height, unsigned int width,
                             const uint8_t* buffer);
 
-        void getDistances(int * distanceBuffer);
+        void getDistances(double * distanceBuffer);
 
         void getConfidences(double * confidenceBuffer);
 
     private:
         int slices;
-        int * distances;
+        double * distances;
         double * confidences;
 
         // Main functionality

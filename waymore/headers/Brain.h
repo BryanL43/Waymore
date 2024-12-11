@@ -28,7 +28,7 @@
 #include "Camera.h"
 
 // Include cognitive functions
-#include "PidController.h"
+#include "Cognition.h"
 
 // Include motor control
 #include "MotorControl.h"
@@ -52,7 +52,7 @@ typedef struct SensoryData
     int * lineSensorReadings;
 
     // Camera Readings
-    int * cameraLineDistances;
+    double * cameraLineDistances;
     double * cameraLineConfidences;
 
     // Lidar Readings

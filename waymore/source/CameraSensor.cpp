@@ -181,7 +181,7 @@ void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buf
     }
 }
 
-void CameraSensor::getLineDistances(int * distanceBuffer) 
+void CameraSensor::getLineDistances(double * distanceBuffer) 
 {
     return frameProcessor->getDistances(distanceBuffer);
 }
