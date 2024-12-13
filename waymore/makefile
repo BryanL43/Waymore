@@ -4,27 +4,26 @@ CXX = g++
 
 # Flags
 CFLAGS = -Wall -g -I./headers -I./source -I/usr/include/libcamera \
-		 -I/usr/include/opencv4 -D USE_BCM2835_LIB
-CXXFLAGS = -Wall -g -I/usr/include/libcamera -I/usr/include/opencv4 -std=c++17 -O2
+		 -I/usr/include/opencv4 -D USE_BCM2835_LIB -O2
+CXXFLAGS = -Wall -g -I/usr/include/libcamera -I/usr/include/opencv4 \
+		   -I./libraries -std=c++17 -O2
 
 # Libraries
 LIBS = -lstdc++ -lcamera -lcamera-base -lopencv_core -lopencv_imgcodecs \
-       -lopencv_imgproc -lopencv_highgui -lbcm2835 -lm
+       -lopencv_imgproc -lopencv_highgui -lbcm2835 -lm -lsl_lidar_sdk
+LIDAR_LIB = -L./libraries
 
 # Directories
 OUTDIR = out
-SRCDIRS = source libraries
 
 # Source Files
-CFILES := $(wildcard source/*.c) $(wildcard libraries/*.c)
-CPPFILES := $(wildcard source/*.cpp) $(wildcard libraries/*.cpp)
+CFILES := $(wildcard source/*.c)
+CPPFILES := $(wildcard source/*.cpp)
 
 # Object Files
-COBJECTS := $(patsubst source/%.c,$(OUTDIR)/%.o,$(wildcard source/*.c)) \
-            $(patsubst libraries/%.c,$(OUTDIR)/%.o,$(wildcard libraries/*.c))
+COBJECTS := $(patsubst source/%.c,$(OUTDIR)/%.o,$(wildcard source/*.c))
 
-CPPOBJECTS := $(patsubst source/%.cpp,$(OUTDIR)/%.o,$(wildcard source/*.cpp)) \
-              $(patsubst libraries/%.cpp,$(OUTDIR)/%.o,$(wildcard libraries/*.cpp))
+CPPOBJECTS := $(patsubst source/%.cpp,$(OUTDIR)/%.o,$(wildcard source/*.cpp))
 
 # Target executable
 TARGET = waymore
@@ -34,7 +33,7 @@ all: $(TARGET)
 
 # Build target
 $(TARGET): $(COBJECTS) $(CPPOBJECTS)
-	$(CXX) $(COBJECTS) $(CPPOBJECTS) -o $(TARGET) $(LIBS)
+	$(CXX) $(COBJECTS) $(CPPOBJECTS) -o $(TARGET) $(LIBS) $(LIDAR_LIB)
 
 # Compile C++ files
 $(OUTDIR)/%.o: source/%.cpp
@@ -43,10 +42,6 @@ $(OUTDIR)/%.o: source/%.cpp
 
 # Compile C files
 $(OUTDIR)/%.o: source/%.c
-	@mkdir -p $(OUTDIR)
-	$(CC) -c $< -o $@ $(CFLAGS)
-
-$(OUTDIR)/%.o: libraries/%.c
 	@mkdir -p $(OUTDIR)
 	$(CC) -c $< -o $@ $(CFLAGS)
 

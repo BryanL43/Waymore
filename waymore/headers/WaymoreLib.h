@@ -74,10 +74,19 @@ typedef enum RegisterOffset{
 
 int initializeGPIO();
 int uninitializeGPIO();
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void setPinDirection(int pin, int direction);
 void setPinLevel(int pin, int level);
-int getPinLevel(int pin);
 
+#ifdef __cplusplus
+}
+#endif
+
+int getPinLevel(int pin);
 
 // ============================================================================================= //
 // I2C Functions

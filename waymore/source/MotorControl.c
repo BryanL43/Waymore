@@ -19,7 +19,7 @@
 // ============================================================================================= //
 
 #define MOTORHATADDR 0x40
-#define DEFAULTFREQ  1000
+#define DEFAULTFREQ  1200
 
 #define LEFTMOTOR	0
 #define AIN1		1
@@ -72,7 +72,6 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 				setLevel(AIN2, 1);
 				setLevel(BIN1, 1);
 				setLevel(BIN2, 0);
-				milliWait(3);
 				currentAction = action;
 			}
 			// Set the speeds
@@ -87,7 +86,6 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 				setLevel(AIN2, 0);
 				setLevel(BIN1, 1);
 				setLevel(BIN2, 0);
-				milliWait(3);
 				currentAction = action;
 			}
 
@@ -103,7 +101,6 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 				setLevel(AIN2, 1);
 				setLevel(BIN1, 0);
 				setLevel(BIN2, 1);
-				milliWait(1);
 				currentAction = action;
 			}
 
@@ -119,7 +116,6 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 				setLevel(AIN2, 0);
 				setLevel(BIN1, 0);
 				setLevel(BIN2, 1);
-				milliWait(1);
 				currentAction = action;
 			}
 			// Set the speeds
@@ -134,7 +130,6 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 				setLevel(AIN2, 0);
 				setLevel(BIN1, 0);
 				setLevel(BIN2, 0);
-				milliWait(1);
 				currentAction = action;
 			}
 			// Set the speeds
@@ -142,7 +137,6 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 			setDutyCycle(RIGHTMOTOR, 0);
 			break;
 	}
-	milliWait(1);
 }
 
 // ============================================================================================= //

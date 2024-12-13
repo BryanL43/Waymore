@@ -51,11 +51,11 @@ void initialize()
     initializeI2C();
 
     // Initialize camera library
-    initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
+    // initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
 
 
     // Initialize lidar library
-    // ...
+    initializeLidar(LIDARDEVICE, BAUDRATE, MOTOCTLGPIO);
 
     // Initialize motor hat
     initializeMotorHat();
@@ -65,6 +65,7 @@ void initialize()
 
     senseData.cameraLineDistances = malloc(sizeof(double)*CAMSLICES);
     senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
+    senseData.lidarData = (LidarData*) malloc(sizeof(LidarData));
 }
 
 void uninitialize()
@@ -75,11 +76,13 @@ void uninitialize()
 
     printf("\nUninitializing each library...\n");
     
+    // uninitializeCamera();
+    uninitializeLidar();
     uninitializeGPIO();
-    uninitializeCamera();
 
     free(senseData.cameraLineDistances);
     free(senseData.cameraLineConfidences);
+    free(senseData.lidarData);
 }
 
 void startSenses()
@@ -90,7 +93,8 @@ void startSenses()
     */
 
     startIR();
-    startCamera();
+    // startCamera();
+    startLidar();
 }
 
 void stopSenses()
@@ -118,16 +122,20 @@ void mainLoop()
     {
         senseData.lineSensorReadings = getLineSensorReadings();
 
-        getCameraLineDistances(senseData.cameraLineDistances);
+        // getCameraLineDistances(senseData.cameraLineDistances);
 
         double error = calculateError(senseData.lineSensorReadings);
+
+        getLidarData(senseData.lidarData);
+
+        // printf("First obstacle data. Distance: %.2f\n", senseData.lidarData[0].obstacles->closestDistance);
 
         // double testcamErr = calculateCameraError(senseData.cameraLineDistances);
         // printf("Camera sum: %.2f\n", testcamErr);
 
         double controlSignal = calculateControlSignal(error);
 
-        applyControlSignal(controlSignal);
+        // applyControlSignal(controlSignal);
         
         milliWait(TIMESTEP_MS);
     }

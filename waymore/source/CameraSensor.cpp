@@ -5,8 +5,6 @@
 // ============================================================================================= //
 CameraSensor::CameraSensor(const int horizontalSlices)
 {
-    shuttingDown = false;
-
     // Loads the library's cam manager for cam acquisition
     camManager = std::make_unique<CameraManager>();
     camManager->start();
@@ -52,7 +50,6 @@ int CameraSensor::configCamera( const uint_fast32_t width,
         std::cerr << "Failed to configure camera: " << cam->id() << std::endl;
         return -EINVAL;
     }
-    //std::cout << "Selected configuration is: " << streamConfig.toString() << std::endl;
 
     // Allocate the buffers & map memory
     allocator = std::make_unique<FrameBufferAllocator>(cam);
@@ -81,7 +78,6 @@ int CameraSensor::configCamera( const uint_fast32_t width,
     return 0;
 }
 
-
 // ============================================================================================= //
 // Starting the Camera
 // ============================================================================================= //
@@ -97,9 +93,12 @@ void CameraSensor::startCamera()
     // Start the camera
     cam->start();
 
-    // Enter a loop which will queue the requests in the camera's instance one by one
-    for (std::unique_ptr<Request>& request : requests) {
-        cam->queueRequest(request.get());
+    // Queue the requests
+    for (std::unique_ptr<Request> &request : requests) {
+        if (cam->queueRequest(request.get()) < 0) {
+            std::cerr << "Failed to queue request" << std::endl;
+            throw std::runtime_error("Failed to queue request");
+        }
     }
 }
 
@@ -132,20 +131,18 @@ void CameraSensor::prepareRequests()
 
 void CameraSensor::fillRequest(Request* request)
 {
-    if(shuttingDown) return;
+    if(!running) return;
 
     // Make sure the request hasn't been cancelled
     if (request->status() == Request::RequestCancelled) return;
-
-    // Initialize an OpenCV matrix aka "frame"
-    cv::Mat frame;
 
     // Iterate through the buffers for this request, rendering & recycling the buffers
     for (auto& [stream, buffer] : request->buffers()) {
         if (buffer->metadata().status == FrameMetadata::FrameSuccess) {
             try {
                 // Render the frame, then reuse the buffer and re-queue the request
-                renderFrame(frame, buffer);
+                processFrame(buffer);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 request->reuse(Request::ReuseBuffers);
                 cam->queueRequest(request);
             } catch (const std::exception& e) {
@@ -156,7 +153,7 @@ void CameraSensor::fillRequest(Request* request)
     }
 }
 
-void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buffer) 
+void CameraSensor::processFrame(const libcamera::FrameBuffer *buffer) 
 {
     const StreamConfiguration &streamConfig = config->at(0);
     try {
@@ -174,7 +171,7 @@ void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buf
             return;
         }
 
-        frameProcessor->processFrame(frame, streamConfig.size.height, streamConfig.size.width,
+        frameProcessor->processFrame(streamConfig.size.height, streamConfig.size.width,
                                         retrievedBuffers[0].data());
     } catch (const std::exception &e) {
         std::cerr << "Error rendering frame: " << e.what() << std::endl;
@@ -184,11 +181,6 @@ void CameraSensor::renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buf
 void CameraSensor::getLineDistances(double * distanceBuffer) 
 {
     return frameProcessor->getDistances(distanceBuffer);
-}
-
-void CameraSensor::getConfidences(double * confidenceBuffer) 
-{
-    return frameProcessor->getConfidences(confidenceBuffer);
 }
 
 // ============================================================================================= //
@@ -202,11 +194,9 @@ CameraSensor::~CameraSensor()
         return;
     }
 
-    // Set the shutting down flag to stop further traffic through fillRequest()
-    shuttingDown = true;
-
+    running = false;
     // Wait for a short duration to make sure the current fillRequest() function has been exited
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Stop the camera
     cam->stop();
@@ -237,4 +227,3 @@ CameraSensor::~CameraSensor()
     camManager->stop();
     camManager.reset();
 }
-

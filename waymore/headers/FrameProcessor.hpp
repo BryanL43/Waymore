@@ -11,20 +11,19 @@ class FrameProcessor {
 
         ~FrameProcessor();
 
-        void processFrame(cv::Mat &frame, unsigned int height, unsigned int width,
-                            const uint8_t* buffer);
+        void processFrame(unsigned int height, unsigned int width, const uint8_t* buffer);
 
         void getDistances(double * distanceBuffer);
-
-        void getConfidences(double * confidenceBuffer);
 
     private:
         int slices;
         double * distances;
-        double * confidences;
+        cv::Point * contourcenters;
+        cv::Mat erosionKernel;
+        cv::Mat dilationKernel;
 
         // Main functionality
-        cv::Point processSlice(cv::Mat &slice, int sliceIndex, cv::Mat &frame, int sliceHeight);
+        void processSlice(cv::Mat &slice, int sliceIndex);
 
         // Performance measuring functionality
         struct timespec currentTime();

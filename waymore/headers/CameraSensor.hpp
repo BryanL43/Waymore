@@ -33,30 +33,23 @@ public:
                     const StreamRole role);
     void startCamera();
     void getLineDistances(double * distanceBuffer);
-    void getConfidences(double * confidenceBuffer);
     ~CameraSensor();
 
 private:
-    bool shuttingDown; // To change behavior while shutting down
+    bool running;
 
     std::shared_ptr<Camera> cam;
     std::unique_ptr<CameraManager> camManager;
     std::unique_ptr<CameraConfiguration> config;
     std::unique_ptr<FrameBufferAllocator> allocator;
     std::vector<std::unique_ptr<Request>> requests;
-
-    // House the Span (mapped memory: 1st param = region offset of file; 2nd param = size)
     std::map<FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mappedBuffers;
-
-    // Pair that formulate each image
     std::map<Stream*, std::queue<FrameBuffer*>> frameBuffers;
-
-    // Modularize frame processing event
     std::unique_ptr<FrameProcessor> frameProcessor;
 
     void prepareRequests();
-    void fillRequest(Request * request);
-    void renderFrame(cv::Mat &frame, const libcamera::FrameBuffer *buffer);
+    void fillRequest(Request* request);
+    void processFrame(const libcamera::FrameBuffer *buffer);
 };
 
 #endif

@@ -15,12 +15,13 @@
 
 #include "../headers/Cognition.h"
 
-#define MAXSPEED 100
-
+const int maxSpeed = 100;
+const int minSpeed = 50;
+const int camErrorThresh = 150;
 int maxPixelDist = CAMWIDTH / 2;
-int baseSpeed = 60;
+int baseSpeed = minSpeed;
 
-static  double              lineSensorPositions[LINESENSORCOUNT];
+static  double              lineSensorPositions[LINESENSORCOUNT] = {};
 static  PIDGains            gain;
 //static  LinePrediction      linePrediction;
 static  LastLineLocation    lastLineLocation;
@@ -32,8 +33,8 @@ void initializePID()
 {
     printf("Initializing PID controller:\n");
 
-    gain.proportional = 10.0;
-    gain.integral = 0.05;
+    gain.proportional = 30.0;
+    gain.integral = 0.01;
     gain.derivative = 5.0;
 
     lastLineLocation = DEADCENTER;
@@ -52,17 +53,14 @@ double calculateError(int * lineSensorReadings)
 {
     double sum = 0.0;
     int activeSensorCount = 0;
-    //printf("Line readings: ");
     for (int i = 0; i < LINESENSORCOUNT; i++)
     {
-        //printf(" %d", lineSensorReadings[i]);
         if (lineSensorReadings[i] == TRUE)
         {
             sum += lineSensorPositions[i];
             activeSensorCount++;
         }
     }
-    //printf("\n");
 
     // Return "not a number" in cases where completely off the line.
     if (activeSensorCount == 0) return NAN;
@@ -84,10 +82,18 @@ double calculateError(int * lineSensorReadings)
         lastLineLocation = DEADCENTER;
         //printf("Line is dead center\n");
     }
-
-    //printf("error: %.2f\n", error);
-    
     return error;
+}
+
+double calculateCameraError(double * cameraLineDistance)
+{
+    double sum = 0.0;
+    for (int i=0; i<CAMSLICES; i++)
+    {
+        if(isnan(cameraLineDistance[i])) return NAN;
+        sum += (i+1)*0.50*cameraLineDistance[i];
+    }
+    return sum / CAMSLICES;
 }
 
 double validateError(double error)
@@ -126,7 +132,6 @@ double validateError(double error)
 
             break;
     }
-
     return verr;
 }
 
@@ -154,13 +159,14 @@ double calculateControlSignal(double error)
 }
 
 
-int calculateSpeedLimit(double * cameraLineDistances)
+void calculateSpeedLimit(double cameraError)
 {
-    int speed = baseSpeed;
-    
-    // TODO: use a case switch with enumerated states to set speeds
-
-    return speed;
+    baseSpeed = minSpeed;
+    int isWithinBounds = (cameraError < camErrorThresh) && (cameraError > (-1*camErrorThresh));
+    if (!isnan(cameraError) && isWithinBounds)
+    {
+        baseSpeed = maxSpeed;
+    }
 }
 
 void applyControlSignal(double controlSignal)
@@ -175,9 +181,6 @@ void applyControlSignal(double controlSignal)
             // convert to ints, with rounding
             int left = (int)(speedLeft + 0.5);
             int right = (int)(speedRight + 0.5);
-
-            // Print & check:
-            //printf("L: %d\tR: %d\n", left, right);
 
             // Send power to the wheels
             commandMotors(FORWARD, left, right);

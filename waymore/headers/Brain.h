@@ -26,6 +26,7 @@
 // Include senses
 #include "LineSensors.h"
 #include "Camera.h"
+#include "Lidar.h"
 
 // Include cognitive functions
 #include "Cognition.h"
@@ -42,6 +43,10 @@
 #define CAMHEIGHT 480
 #define CAMSLICES 4
 
+#define LIDARDEVICE "/dev/ttyS0"
+#define BAUDRATE 115200
+#define MOTOCTLGPIO 6 // Lidar motor pin
+
 // ============================================================================================= //
 // Definitions of Structures
 // ============================================================================================= //
@@ -55,8 +60,8 @@ typedef struct SensoryData
     double * cameraLineDistances;
     double * cameraLineConfidences;
 
-    // Lidar Readings
-    //...
+    // Lidar Readings (array of obstacle data)
+    LidarData * lidarData;
 } SensoryData;
 
 // ============================================================================================= //

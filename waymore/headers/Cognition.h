@@ -33,15 +33,6 @@ typedef enum LastLineLocation
     RIGHTOFCAR
 }LastLineLocation;
 
-typedef enum LinePrediction
-{
-    STRAIGHT,
-    CURVE,
-    CORNERLEFT,
-    CORNERRIGHT,
-    MISSING
-}LinePrediction;
-
 typedef enum CurrentState
 {
     NORMAL,
@@ -54,7 +45,9 @@ void initializePID();
 
 double calculateError(int * lineSensorReadings);
 
-void interpretCameraDistances(double * cameraLineDistances);
+double calculateCameraError(double * cameraLineDistances);
+
+void calculateSpeedLimit(double cameraError);
 
 double calculateControlSignal(double error);
 

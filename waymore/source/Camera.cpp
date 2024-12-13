@@ -60,15 +60,6 @@ void getCameraLineDistances(double * distanceBuffer) {
     return camera->getLineDistances(distanceBuffer);
 }
 
-void getCameraLineConfidences(double * confidenceBuffer) {
-    if (!camera) {
-        std::cerr << "No camera initialized!" << std::endl;
-        return;
-    }
-
-    return camera->getConfidences(confidenceBuffer);
-}
-
 void uninitializeCamera() 
 {
     if (!camera)
