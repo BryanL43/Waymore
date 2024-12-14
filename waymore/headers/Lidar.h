@@ -14,7 +14,7 @@
 #ifndef _LIDAR_H_
 #define _LIDAR_H_
 
-#include <stdlib.h> // EXIT_FAILURE
+#include "WaymoreLib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,9 +36,9 @@ typedef struct {
 
 typedef void Lidar; // Intermediate for C compatibility
 
-Lidar* initializeLidar(const char* device, int baudrate, int MOTOCTL_GPIO);
+Lidar * initializeLidar();
 void startLidar();
-void getLidarData(LidarData* data);
+LidarData * getLidarDataRef();
 void uninitializeLidar();
 
 #ifdef __cplusplus

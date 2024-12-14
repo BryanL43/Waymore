@@ -7,9 +7,9 @@
 #include <chrono>
 #include <sys/mman.h> // mmap & munmap
 
+#include "Camera.h"
 #include "FrameProcessor.hpp"
 #include <libcamera/libcamera.h>
-
 
 class CameraSensor {
 public:
@@ -32,7 +32,7 @@ public:
                     const PixelFormat pixelFormat, 
                     const StreamRole role);
     void startCamera();
-    void getLineDistances(double * distanceBuffer);
+    CameraData& getCameraDataRef();
     ~CameraSensor();
 
 private:
@@ -46,6 +46,8 @@ private:
     std::map<FrameBuffer*, std::vector<libcamera::Span<uint8_t>>> mappedBuffers;
     std::map<Stream*, std::queue<FrameBuffer*>> frameBuffers;
     std::unique_ptr<FrameProcessor> frameProcessor;
+
+    CameraData * cameraData;
 
     void prepareRequests();
     void fillRequest(Request* request);

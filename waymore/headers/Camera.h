@@ -1,5 +1,5 @@
-#ifndef _CAMERA_H
-#define _CAMERA_H
+#ifndef _CAMERA_H_
+#define _CAMERA_H_
 
 #include <stdint.h> // uint8_t, uint_fast32_t
 #include <stdlib.h> // EXIT_FAILURE
@@ -9,11 +9,20 @@
 extern "C" {
 #endif
 
+#define CAMSLICES 4
+#define CAMWIDTH 640
+#define CAMHEIGHT 480
+
 typedef void Camera; // Intermediate for C compatibility
 
-Camera * initializeCamera(const int pixelWidth, const int pixelHeight, const int slices);
+typedef struct CameraData
+{
+    double distances[CAMSLICES];
+} CameraData;
+
+Camera * initializeCamera();
 void startCamera();
-void getCameraLineDistances(double * distanceBuffer);
+CameraData * getCameraDataRef();
 void uninitializeCamera();
 
 #ifdef __cplusplus

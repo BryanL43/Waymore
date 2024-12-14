@@ -1,18 +1,22 @@
 #include "../headers/LidarSensor.hpp"
+#define LIDARDEVICE "/dev/ttyS0"
+#define BAUDRATE 115200
+#define MOTOCTLGPIO 6
+#define DISTANCETHRESH 1000
 
 // ============================================================================================= //
 // Constructor
 // ============================================================================================= //
-LidarSensor::LidarSensor(const std::string& device, int baudrate, int MOTOCTL_GPIO)
-    : MOTOCTL_GPIO(MOTOCTL_GPIO), lidar(nullptr) {
-
-    distThresh = 5.0;
+LidarSensor::LidarSensor()
+{
     shuttingDown.store(false);
 
+    lidarData = new LidarData;
+
     // Initialize the Lidar port & device
-    Result<IChannel*> channel = createSerialPortChannel(device.c_str(), baudrate);
+    Result<IChannel*> channel = createSerialPortChannel(LIDARDEVICE, BAUDRATE);
     if (!channel) {
-        std::cerr << "Failed to create serial port channel for " << device << std::endl;
+        std::cerr << "Failed to create serial port channel for " << LIDARDEVICE << std::endl;
         return;
     }
 
@@ -64,12 +68,18 @@ void LidarSensor::lidarThreadRoutine() {
 
                 // 360 Lidar scan
                 for (size_t i = 0; i < count; i++) {
+                    if (obstacleCount >= MAXOBSTACLES) break;
                     double angle = (nodes[i].angle_z_q14 * 90.0f) / 16384.0f;
+                    angle = fmod(angle, 360.0);
                     double distance = nodes[i].dist_mm_q2 / 4.0f;
 
+                    // if(angle > 175 && angle < 185) {
+                    //     printf("Angle: %.2f, Distance: %.2f\n", angle, distance);
+                    // }
+                    
                     // Repeatedly search for obstacles within distance and map its left-most point
                     // of said obstacle to its right-most point
-                    if (distance < distThresh && obstacleCount < MAXOBSTACLES) {
+                    if (distance < DISTANCETHRESH) {
                         // Acquired left-most point
                         if (isnan(leftObstAngle)) {
                             leftObstAngle = angle;
@@ -78,32 +88,29 @@ void LidarSensor::lidarThreadRoutine() {
                             closestDist = distance;
                         } else {
                             // Still seeking right-most point
-                            if (!isnan(angle)) {
-                                rightObstAngle = angle;
-                                if (distance < closestDist) {
-                                    closestDist = distance;
-                                }
-                            } else { // We have finished mapping 1 obstacle
-                                obstacleData[count][0] = closestAngle;
-                                obstacleData[count][1] = closestDist;
-                                obstacleData[count][2] = leftObstAngle;
-                                obstacleData[count][3] = rightObstAngle;
-                                obstacleCount++;
-
-                                // Reset for any potential additional obstacle
-                                leftObstAngle = NAN;
-                                rightObstAngle = NAN;
-                                closestAngle = NAN;
-                                closestDist = 99999;
+                            rightObstAngle = angle;
+                            if (distance < closestDist) {
+                                closestDist = distance;
                             }
                         }
+                    } else {
+                        if(isnan(leftObstAngle)) continue;
+                        // We have finished mapping this obstacle
+                        lidarData->obstacles[obstacleCount].closestAngle = closestAngle;
+                        lidarData->obstacles[obstacleCount].closestDistance = closestDist;
+                        lidarData->obstacles[obstacleCount].leftObstacleAngle = leftObstAngle;
+                        lidarData->obstacles[obstacleCount].rightObstacleAngle = rightObstAngle;
+                        lidarData->validObstacles ++;
+
+                        // Reset scoped vars for the next obstacle
+                        leftObstAngle = NAN;
+                        rightObstAngle = NAN;
+                        closestAngle = NAN;
+                        closestDist = 99999;
                     }
                 }
-
-                validObstacles = obstacleCount;
-
             } else {
-                setPinLevel(MOTOCTL_GPIO, LOW);
+                setPinLevel(MOTOCTLGPIO, LOW);
                 throw std::runtime_error("Lidar failed to acquire scanned data!");
             }
         }
@@ -121,12 +128,11 @@ void LidarSensor::startLidar() {
         return;
     }
 
-    setPinDirection(MOTOCTL_GPIO, OUT);
-    setPinLevel(MOTOCTL_GPIO, LOW);
-    setPinLevel(MOTOCTL_GPIO, HIGH);
-    std::cout << "Lidar motor started." << std::endl;
+    setPinDirection(MOTOCTLGPIO, OUT);
+    setPinLevel(MOTOCTLGPIO, LOW);
+    setPinLevel(MOTOCTLGPIO, HIGH);
 
-    lidar->startScan(0, 1);
+    lidar->startScan(FALSE, TRUE);
 
     lidarThread = std::thread(&LidarSensor::lidarThreadRoutine, this);
 }
@@ -134,13 +140,9 @@ void LidarSensor::startLidar() {
 // ============================================================================================= //
 // Retrieve the Lidar data
 // ============================================================================================= //
-double (*LidarSensor::getLidarData())[4] {
-    std::cout << "Something wong: " << validObstacles << std::endl; 
-    return obstacleData;
-}
-
-int LidarSensor::getValidObstacles() {
-    return validObstacles;
+LidarData& LidarSensor::getLidarDataRef() 
+{
+    return * lidarData;
 }
 
 // ============================================================================================= //
@@ -158,10 +160,7 @@ LidarSensor::~LidarSensor() {
 
     lidar->stop();
     
-    setPinLevel(MOTOCTL_GPIO, LOW);
-    std::cout << "Lidar motor stopped." << std::endl;
+    setPinLevel(MOTOCTLGPIO, LOW);
 
     delete lidar;
-    
-    std::cout << "Successfully stopped and deleted Lidar!" << std::endl;
 }

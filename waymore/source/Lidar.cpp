@@ -5,13 +5,13 @@ namespace {
     LidarSensor* lidar = nullptr;
 }
 
-Lidar* initializeLidar(const char* device, int baudrate, int MOTOCTL_GPIO) {
+Lidar* initializeLidar() {
     if (lidar != nullptr) {
         std::cerr << "Lidar is already initialized!" << std::endl;
         return nullptr;
     }
 
-    lidar = new LidarSensor(device, baudrate, MOTOCTL_GPIO);
+    lidar = new LidarSensor();
     
     printf("Lidar initialized.\n");
 
@@ -33,23 +33,9 @@ void startLidar() {
     }
 }
 
-void getLidarData(LidarData* data) {
-    if (!data) {
-        std::cerr << "Lidar API: Invalid data pointer" << std::endl;
-        return;
-    }
-
-    double** ld = lidar->getLidarData();
-    int vO = lidar->getValidObstacles();
-
-    for (int i = 0; i < vO; i++) {
-        data->obstacles->closestAngle = ld[i][0];
-        data->obstacles->closestDistance = ld[i][1];
-        data->obstacles->leftObstacleAngle = ld[i][2];
-        data->obstacles->rightObstacleAngle = ld[i][3];
-    }
-
-    data->validObstacles = vO;
+LidarData * getLidarDataRef()
+{
+    return &lidar->getLidarDataRef();
 }
 
 void uninitializeLidar() {

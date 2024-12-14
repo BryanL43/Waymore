@@ -31,15 +31,17 @@ typedef enum MotorAction
     ROTATELEFT,
     ROTATERIGHT,
     BACKWARD,
-    HALT
+    HALT,
 }MotorAction;
 
 // ============================================================================================= //
 // Public facing functions
 // ============================================================================================= //
 
-void commandMotors(MotorAction action, int leftSpeed, int rightSpeed);
 void initializeMotorHat();
+void commandMotors(MotorAction action, int leftSpeed, int rightSpeed);
+void startMotorControl();
+void stopMotorControl();
 
 // ============================================================================================= //
 // End of File

@@ -24,10 +24,12 @@ CameraSensor::CameraSensor(const int horizontalSlices)
         camManager->stop();
         exit(EXIT_FAILURE);
     }
-    //std::cout << "Acquired cam: " << cam->id() << std::endl;
 
     // Create & config frame processor
-    frameProcessor = std::make_unique<FrameProcessor>(horizontalSlices);
+    frameProcessor = std::make_unique<FrameProcessor>();
+
+    // Create the camera data struct
+    cameraData = new CameraData;
 }
 
 int CameraSensor::configCamera( const uint_fast32_t width,
@@ -82,24 +84,15 @@ int CameraSensor::configCamera( const uint_fast32_t width,
 // Starting the Camera
 // ============================================================================================= //
 
-void CameraSensor::startCamera() 
-{
-    // Prepare a vector of request buffers for the camera to fill
+void CameraSensor::startCamera() {
     prepareRequests();
 
-    // Connect the requestCompleted signal in our private camera instance our fillRequest function
     cam->requestCompleted.connect(this, &CameraSensor::fillRequest);
-
-    // Start the camera
     cam->start();
 
-    // Queue the requests
-    for (std::unique_ptr<Request> &request : requests) {
-        if (cam->queueRequest(request.get()) < 0) {
-            std::cerr << "Failed to queue request" << std::endl;
-            throw std::runtime_error("Failed to queue request");
-        }
-    }
+    cam->queueRequest(requests.front().get());
+
+    running = true;
 }
 
 void CameraSensor::prepareRequests() 
@@ -129,7 +122,7 @@ void CameraSensor::prepareRequests()
 // Main Operation of the Camera
 // ============================================================================================= //
 
-void CameraSensor::fillRequest(Request* request)
+void CameraSensor::fillRequest(Request * request)
 {
     if(!running) return;
 
@@ -142,8 +135,8 @@ void CameraSensor::fillRequest(Request* request)
             try {
                 // Render the frame, then reuse the buffer and re-queue the request
                 processFrame(buffer);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 request->reuse(Request::ReuseBuffers);
+                std::this_thread::yield();
                 cam->queueRequest(request);
             } catch (const std::exception& e) {
                 std::cerr << "Error trying to render frame: " << e.what() << std::endl;
@@ -155,7 +148,6 @@ void CameraSensor::fillRequest(Request* request)
 
 void CameraSensor::processFrame(const libcamera::FrameBuffer *buffer) 
 {
-    const StreamConfiguration &streamConfig = config->at(0);
     try {
         // Find the mapped buffer associated with the given FrameBuffer
         auto item = mappedBuffers.find(const_cast<libcamera::FrameBuffer*>(buffer));
@@ -170,17 +162,15 @@ void CameraSensor::processFrame(const libcamera::FrameBuffer *buffer)
             std::cerr << "Mapped buffer is empty or data is null, cannot display frame" << std::endl;
             return;
         }
-
-        frameProcessor->processFrame(streamConfig.size.height, streamConfig.size.width,
-                                        retrievedBuffers[0].data());
+        frameProcessor->processFrame(retrievedBuffers[0].data(), cameraData);
     } catch (const std::exception &e) {
         std::cerr << "Error rendering frame: " << e.what() << std::endl;
     }
 }
 
-void CameraSensor::getLineDistances(double * distanceBuffer) 
+CameraData& CameraSensor::getCameraDataRef() 
 {
-    return frameProcessor->getDistances(distanceBuffer);
+    return * cameraData;
 }
 
 // ============================================================================================= //
@@ -196,7 +186,7 @@ CameraSensor::~CameraSensor()
 
     running = false;
     // Wait for a short duration to make sure the current fillRequest() function has been exited
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // Stop the camera
     cam->stop();
@@ -222,6 +212,8 @@ CameraSensor::~CameraSensor()
         }
         allocator.reset();
     }
+
+    delete cameraData;
 
     cam.reset();
     camManager->stop();

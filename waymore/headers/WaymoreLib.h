@@ -27,11 +27,15 @@
 #include <sys/mman.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <time.h>
+#include <bits/pthreadtypes.h>
 #include <signal.h>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <bcm2835.h>
 #include <math.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -50,6 +54,14 @@ typedef enum RegisterOffset{
     CLR = 0x28,
     RD = 0x34,
 }RegisterOffset;
+
+typedef struct RingBuffer
+{
+    double * buffer;
+    int length;
+    int head;
+    int tail;
+}RingBuffer;
 
 // ============================================================================================= //
 // Definitions of Constants
@@ -105,9 +117,9 @@ int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value);
 Thread * startThread(const char * name, void*(*function)(void *));
 void stopThread(Thread * thread);
 
-// =============================================================================== //
+// ============================================================================================= //
 // Time Functions
-// =============================================================================== //
+// ============================================================================================= //
 
 // Interruptable waiting
 void nanoWait(uint64_t nanoseconds);
@@ -118,6 +130,16 @@ void milliWait(uint64_t milliseconds);
 struct timespec currentTime();
 unsigned long microSecondsSince(struct timespec * previous);
 void printTimeBetween(struct timespec * previous, struct timespec * current);
+
+// ============================================================================================= //
+// Ring Buffer Functions
+// ============================================================================================= //
+
+RingBuffer * newRingBuffer(int length);
+void destroyRingBuffer(RingBuffer * rb);
+void pushRingBuffer(RingBuffer * rb, double value);
+double getMeanRingBuffer(RingBuffer * rb);
+double getMedianRingBuffer(RingBuffer * rb);
 
 // ============================================================================================= //
 // End of File

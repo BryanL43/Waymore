@@ -1,20 +1,16 @@
 #include "../headers/Camera.h"
 #include "../headers/CameraSensor.hpp"
 
-
 namespace {
     CameraSensor* camera = nullptr;
 }
 
-Camera* initializeCamera(const int pixelWidth, const int pixelHeight, const int slices) {
-    // Configure camera with desired dimension, color format, & type of stream
-    // All pixel format: https://libcamera.org/api-html/formats_8h_source.html
-    // WARNING: OpenCV takes only RGB type format. YUV420, etc will require additional conversion
-
+Camera* initializeCamera() 
+{
     printf("Initializing camera...\n");
 
-    const uint_fast32_t width = pixelWidth;
-    const uint_fast32_t height = pixelHeight;
+    const uint_fast32_t width = CAMWIDTH;
+    const uint_fast32_t height = CAMHEIGHT;
     const libcamera::PixelFormat pixelFormat = libcamera::formats::XRGB8888;
     const libcamera::StreamRole role = libcamera::StreamRole::Raw;
 
@@ -24,7 +20,7 @@ Camera* initializeCamera(const int pixelWidth, const int pixelHeight, const int 
     }
 
     // Initialize the camera
-    camera = new CameraSensor(slices);
+    camera = new CameraSensor(CAMSLICES);
     int result = camera->configCamera(width, height, pixelFormat, role);
     if (result != 0) {
         delete camera;
@@ -51,13 +47,13 @@ void startCamera() {
     }
 }
 
-void getCameraLineDistances(double * distanceBuffer) {
+CameraData * getCameraDataRef() {
     if (!camera) {
         std::cerr << "No camera initialized!" << std::endl;
-        return;
+        return nullptr;
     }
 
-    return camera->getLineDistances(distanceBuffer);
+    return &camera->getCameraDataRef();
 }
 
 void uninitializeCamera() 

@@ -18,8 +18,6 @@
 // Library Linking
 // ============================================================================================= //
 
-#include <stdio.h>
-
 // Include gpio & other basic functionality
 #include "WaymoreLib.h"
 
@@ -39,28 +37,15 @@
 // ============================================================================================= //
 
 #define TIMESTEP_MS 1 // 1000 Hz
-#define CAMWIDTH 640
-#define CAMHEIGHT 480
-#define CAMSLICES 4
-
-#define LIDARDEVICE "/dev/ttyS0"
-#define BAUDRATE 115200
-#define MOTOCTLGPIO 6 // Lidar motor pin
 
 // ============================================================================================= //
 // Definitions of Structures
 // ============================================================================================= //
 
-typedef struct SensoryData
+typedef struct
 {
-    // Obstacle and Line Sensor counts and readings
-    int * lineSensorReadings;
-
-    // Camera Readings
-    double * cameraLineDistances;
-    double * cameraLineConfidences;
-
-    // Lidar Readings (array of obstacle data)
+    LineSensorData * lineSensorData;
+    CameraData * cameraData;
     LidarData * lidarData;
 } SensoryData;
 
@@ -78,9 +63,9 @@ void initialize();
 
 void uninitialize();
 
-void startSenses();
+void start();
 
-void stopSenses();
+void stop();
 
 // ============================================================================================= //
 // Main Loop & Business Logic

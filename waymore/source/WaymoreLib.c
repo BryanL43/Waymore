@@ -39,7 +39,6 @@ int readIdx	    = RD  >> 2;
 // Pertaining to I2C functionality
 int i2cBus = -1;
 uint8_t currentI2cAddr = -1;
-pthread_spinlock_t lock;
 
 // ============================================================================================= //
 // Validation functions
@@ -157,19 +156,6 @@ int initializeI2C()
 {
 	printf("Initializing I2C...");
 
-    // Initialize a spinlock to only allow one
-    // thread to communicate over the bus at a time
-    if (pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE) != 0)
-    {
-        fprintf(stderr, "Failed to initialize the I2C spinlock!\n");
-        if(close(i2cBus) < 0)
-        {
-            fprintf(stderr, "Failed to close I2C bus!\n");
-            return -1;
-        }
-        return -1;
-    }
-
 	if (bcm2835_init() == FALSE)
 	{
 		fprintf(stderr, "Failed to initialize I2C bus: BCM2835_init failed!\n");
@@ -198,13 +184,6 @@ int uninitializeI2C()
     if(bcm2835_close() == FALSE)
     {
         fprintf(stderr, "Failed to close I2C bus: bcm2835_close() failed.\n");
-        return -1;
-    }
-
-	// Spin lock is the last to go for safety
-	if(pthread_spin_destroy(&lock) < 0)
-    {
-        fprintf(stderr, "Failed to destroy the I2C spinlock!\n");
         return -1;
     }
 
@@ -292,14 +271,6 @@ int getPinLevel(int pin)
 int readByteI2C(uint8_t ADDR, uint8_t reg)
 {
 	char buffer[2] = {0};
-
-    if (pthread_spin_lock(&lock) != 0)
-    {
-        // should only occurs if the calling thread already has the lock
-        // or if the lock argument is invalid.
-        printf("I2C Spinlock error!\n");
-		return -1;
-    }
     
     if (currentI2cAddr != ADDR)
     {
@@ -314,27 +285,11 @@ int readByteI2C(uint8_t ADDR, uint8_t reg)
         return -1;
     }
 
-    if (pthread_spin_unlock(&lock) != 0)
-    {
-        // should only occurs if the calling thread already has the lock
-        // or if the lock argument is invalid.
-        fprintf(stderr, "I2C spinlock error: failed to unlock!\n");
-        return -1;
-    }
-
 	return buffer[0];
 }
 
 int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value)
 {
-	if (pthread_spin_lock(&lock) != 0)
-    {
-        // should only occurs if the calling thread already has the lock
-        // or if the lock argument is invalid.
-        fprintf(stderr, "I2C spinlock failed!\n");
-        return -1;
-    }
-
     if(currentI2cAddr != ADDR)
     {
         currentI2cAddr = ADDR;
@@ -346,14 +301,6 @@ int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value)
     if (bcm2835_i2c_write(buffer, 2) != BCM2835_I2C_REASON_OK)
     {
         fprintf(stderr, "Failed to write bytes to I2C address 0x%02x!\n", ADDR);
-        return -1;
-    }
-
-    if (pthread_spin_unlock(&lock) != 0)
-    {
-        // should only occurs if the calling thread already has the lock
-        // or if the lock argument is invalid.
-        fprintf(stderr, "I2C spinlock error: failed to unlock!\n");
         return -1;
     }
 
@@ -485,6 +432,111 @@ void printTimeBetween(struct timespec * previous, struct timespec * current)
 	int64_t nanoSince = secondComponent*1000000000L + nanoComponent;
     double microSince = nanoSince/1000.0;
 	printf("Duration between times: %.2f microseconds\n", microSince);
+}
+
+// ============================================================================================= //
+// Ring Buffer Functions
+// ============================================================================================= //
+
+RingBuffer * newRingBuffer(int length)
+{
+	RingBuffer * rb = (RingBuffer*) malloc(sizeof(RingBuffer));
+	rb->length = length;
+	rb->buffer = (double *) malloc(length * sizeof(double));
+	rb->head = 0;
+	rb->tail = 0;
+	for (int i = 0; i < length; i++)
+	{
+		rb->buffer[i] = NAN;
+	}
+	return rb;
+}
+
+int isEmptyRingBuffer(RingBuffer * rb)
+{
+	return (rb->head == rb->tail);
+}
+
+void pushRingBuffer(RingBuffer * rb, double value)
+{
+	rb->buffer[rb->head] = value;
+	rb->head = (rb->head + 1) % rb->length;
+	if (rb->head == rb->tail)
+	{
+		rb->tail = (rb->tail + 1) % rb->length;
+	}
+}
+
+double getMeanRingBuffer(RingBuffer * rb)
+{
+	if (isEmptyRingBuffer(rb)) return NAN;
+	double sum = 0.0;
+	int count = 0;
+	int i = rb->tail;
+	while (i != rb->head) {
+		if (!isnan(rb->buffer[i])) {
+			sum += rb->buffer[i];
+			count++;
+		}
+    	i = (i + 1) % rb->length;
+	}
+	return (count == 0) ? NAN : (sum / count);
+}
+
+int qsortCompareDouble(const void *a, const void *b) {
+    double da = *(const double*)a;
+    double db = *(const double*)b;
+    if (da < db) return -1;
+    else if (da > db) return 1;
+    return 0;
+}
+
+// Function to get the median of a RingBuffer while excluding NaN values
+double getMedianRingBuffer(RingBuffer *rb)
+{
+    if (rb == NULL || rb->length == 0) {
+        return NAN; // Handle empty or invalid ring buffer
+    }
+
+    // Temporary array for valid (non-NaN) values
+    double validValues[rb->length];
+    size_t validCount = 0;
+
+    // Extract valid (non-NaN) values from the ring buffer
+    for (size_t i = 0; i < rb->length; i++) {
+        size_t index = (rb->length - rb->length + i) % rb->length; // Proper circular indexing
+        double value = rb->buffer[index];
+        if (!isnan(value)) {
+            validValues[validCount++] = value;
+        }
+    }
+
+    // If no valid values, return NaN
+    if (validCount == 0) {
+        return NAN;
+    }
+
+    // Sort the valid values
+    qsort(validValues, validCount, sizeof(double), qsortCompareDouble);
+
+    // Calculate the median
+    double median;
+    if (validCount % 2 == 0) {
+        // Even number of elements: average the two middle values
+        median = (validValues[validCount / 2] + validValues[validCount / 2 - 1]) / 2.0;
+    } else {
+        // Odd number of elements: take the middle value
+        median = validValues[validCount / 2];
+    }
+
+    return median;
+}
+
+void destroyRingBuffer(RingBuffer * rb)
+{
+	free(rb->buffer);
+	free(rb);
+	rb = NULL;
 }
 
 // ============================================================================================= //

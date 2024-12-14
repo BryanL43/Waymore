@@ -32,7 +32,12 @@
 // Definitions of Private Variables and States
 // ============================================================================================= //
 
-MotorAction currentAction;
+volatile MotorAction newAction = HALT;
+volatile MotorAction currentAction = HALT;
+volatile int leftSpeed = 0;
+volatile int rightSpeed = 0;
+
+Thread * motorControlThread;
 
 // ============================================================================================= //
 // Public Facing Functions
@@ -53,7 +58,14 @@ void initializeMotorHat()
 	printf("done.\n");
 }
 
-void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
+void commandMotors(MotorAction action, int left, int right)
+{
+	newAction = action;
+	leftSpeed = left;
+	rightSpeed = right;
+}
+
+void applyMotorCommand()
 {
 	// Validate the speed inputs on both motors
 	if (leftSpeed > 100) leftSpeed = 100;
@@ -62,31 +74,31 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
     if (rightSpeed > 100) rightSpeed = 100;
 	else if (rightSpeed < 0) rightSpeed = 0;
 
-	switch (action)
+	switch (newAction)
 	{
 		case (FORWARD):
-			// Apply the current direction if different
-			if (action != currentAction)
+			// Apply the new direction if different
+			if (currentAction != newAction)
 			{
 				setLevel(AIN1, 0);
 				setLevel(AIN2, 1);
 				setLevel(BIN1, 1);
 				setLevel(BIN2, 0);
-				currentAction = action;
+				currentAction = newAction;
 			}
 			// Set the speeds
 			setDutyCycle(LEFTMOTOR, leftSpeed);
 			setDutyCycle(RIGHTMOTOR, rightSpeed);
 			break;
 		case (ROTATELEFT):
-			// Apply the current direction if different
-			if (action != currentAction)
+			// Apply the new direction if different
+			if (currentAction != newAction)
 			{
 				setLevel(AIN1, 1);
 				setLevel(AIN2, 0);
 				setLevel(BIN1, 1);
 				setLevel(BIN2, 0);
-				currentAction = action;
+				currentAction = newAction;
 			}
 
 			// Set the speeds (both using leftSpeed)
@@ -94,14 +106,14 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 			setDutyCycle(RIGHTMOTOR, leftSpeed);
 			break;
 		case (ROTATERIGHT):
-			// Apply the current direction if different
-			if (action != currentAction)
+			// Apply the new direction if different
+			if (currentAction != newAction)
 			{
 				setLevel(AIN1, 0);
 				setLevel(AIN2, 1);
 				setLevel(BIN1, 0);
 				setLevel(BIN2, 1);
-				currentAction = action;
+				currentAction = newAction;
 			}
 
 			// Set the speeds (both using leftSpeed)
@@ -109,34 +121,69 @@ void commandMotors(MotorAction action, int leftSpeed, int rightSpeed)
 			setDutyCycle(RIGHTMOTOR, leftSpeed);
 			break;
 		case (BACKWARD):
-			// Apply the current direction if different
-			if (action != currentAction)
+			// Apply the new direction if different
+			if (currentAction != newAction)
 			{
 				setLevel(AIN1, 1);
 				setLevel(AIN2, 0);
 				setLevel(BIN1, 0);
 				setLevel(BIN2, 1);
-				currentAction = action;
+				currentAction = newAction;
 			}
 			// Set the speeds
 			setDutyCycle(LEFTMOTOR, leftSpeed);
 			setDutyCycle(RIGHTMOTOR, rightSpeed);
 			break;
 		case (HALT):
-			// Apply the current direction if different
-			if (action != currentAction)
+			// Apply the new direction if different
+			if (currentAction != newAction)
 			{
 				setLevel(AIN1, 0);
 				setLevel(AIN2, 0);
 				setLevel(BIN1, 0);
 				setLevel(BIN2, 0);
-				currentAction = action;
+				currentAction = newAction;
 			}
 			// Set the speeds
 			setDutyCycle(LEFTMOTOR, 0);
 			setDutyCycle(RIGHTMOTOR, 0);
 			break;
 	}
+}
+
+void * motorControlLoop(void * args)
+{
+	/*
+	**	Control loop for the motors.
+	**	Will be called by the motorThread.
+	*/
+	(void) args;
+
+	while (motorControlThread->running)
+	{
+		applyMotorCommand();
+		milliWait(1);
+	}
+
+	commandMotors(HALT, 0, 0);
+	applyMotorCommand();
+	return NULL;
+}
+
+void startMotorControl()
+{
+	motorControlThread = startThread("Motor control thread", motorControlLoop);
+	if(motorControlThread == NULL)
+    {
+        fprintf(stderr, "Failed to start the motor control thread. Exiting.\n");
+        exit(1);
+    }
+}
+
+void stopMotorControl()
+{
+	stopThread(motorControlThread);
+	motorControlThread = NULL;
 }
 
 // ============================================================================================= //

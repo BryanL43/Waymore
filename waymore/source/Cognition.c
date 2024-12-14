@@ -17,21 +17,23 @@
 
 const int maxSpeed = 100;
 const int minSpeed = 50;
-const int camErrorThresh = 150;
-int maxPixelDist = CAMWIDTH / 2;
 int baseSpeed = minSpeed;
+
+const int camErrorThresh = 80;
 
 static  double              lineSensorPositions[LINESENSORCOUNT] = {};
 static  PIDGains            gain;
-//static  LinePrediction      linePrediction;
 static  LastLineLocation    lastLineLocation;
 static  CurrentState        currentState;
 
 static double currentIntegral = 0;
 
-void initializePID()
+const int lineErrorBufferLength = 5;
+RingBuffer * lineErrorBuffer;
+
+void initializeCognition()
 {
-    printf("Initializing PID controller:\n");
+    printf("Initializing Cognitive Functions...");
 
     gain.proportional = 30.0;
     gain.integral = 0.01;
@@ -44,18 +46,21 @@ void initializePID()
     for (int i = 0; i < LINESENSORCOUNT; i++)
     {
         lineSensorPositions[i] = (double)(i) - ((double)(LINESENSORCOUNT - 1) / 2);
-        printf("sensor %d position: %.2f\n", i + 1, lineSensorPositions[i]);
     }
+
+    // Initialize the ring buffer
+    lineErrorBuffer = newRingBuffer(lineErrorBufferLength);
+
     printf("done.\n");
 }
 
-double calculateError(int * lineSensorReadings)
+double calculateLineError(int * lineSensorLevels)
 {
     double sum = 0.0;
     int activeSensorCount = 0;
     for (int i = 0; i < LINESENSORCOUNT; i++)
     {
-        if (lineSensorReadings[i] == TRUE)
+        if (lineSensorLevels[i] == TRUE)
         {
             sum += lineSensorPositions[i];
             activeSensorCount++;
@@ -82,7 +87,13 @@ double calculateError(int * lineSensorReadings)
         lastLineLocation = DEADCENTER;
         //printf("Line is dead center\n");
     }
-    return error;
+    
+    pushRingBuffer(lineErrorBuffer, error);
+ 
+    //double mean = getMeanRingBuffer(lineErrorBuffer);
+    double median = getMedianRingBuffer(lineErrorBuffer);
+
+    return median;
 }
 
 double calculateCameraError(double * cameraLineDistance)
@@ -91,9 +102,9 @@ double calculateCameraError(double * cameraLineDistance)
     for (int i=0; i<CAMSLICES; i++)
     {
         if(isnan(cameraLineDistance[i])) return NAN;
-        sum += (i+1)*0.50*cameraLineDistance[i];
+        sum += (i+1)/CAMSLICES*cameraLineDistance[i];
     }
-    return sum / CAMSLICES;
+    return sum;
 }
 
 double validateError(double error)
@@ -158,25 +169,25 @@ double calculateControlSignal(double error)
     return P + I + D;
 }
 
-
-void calculateSpeedLimit(double cameraError)
+double calculateSpeed(double cameraError)
 {
-    baseSpeed = minSpeed;
+    double speed = minSpeed;
     int isWithinBounds = (cameraError < camErrorThresh) && (cameraError > (-1*camErrorThresh));
     if (!isnan(cameraError) && isWithinBounds)
     {
-        baseSpeed = maxSpeed;
+        speed = maxSpeed;
     }
+    return speed;
 }
 
-void applyControlSignal(double controlSignal)
+void applyControlSignal(double controlSignal, double speed)
 {
     switch (currentState)
     {
         case NORMAL:
             // Calculate speeds
-            double speedLeft = baseSpeed + controlSignal;
-            double speedRight = baseSpeed - controlSignal;
+            double speedLeft = speed + controlSignal;
+            double speedRight = speed - controlSignal;
 
             // convert to ints, with rounding
             int left = (int)(speedLeft + 0.5);
@@ -187,15 +198,20 @@ void applyControlSignal(double controlSignal)
             break;
 
         case CORNERINGLEFT:
-            commandMotors(ROTATELEFT, 50, 50);
+            commandMotors(ROTATELEFT, 60, 40);
             break;
         
         case CORNERINGRIGHT:
-            commandMotors(ROTATERIGHT, 50, 50);
+            commandMotors(ROTATERIGHT, 40, 60);
             break;
 
         case OBSTACLEAVOIDANCE:
             // Do stuff
             break;
     }
+}
+
+void uninitializeCognition()
+{
+    destroyRingBuffer(lineErrorBuffer);
 }

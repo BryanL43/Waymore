@@ -16,7 +16,7 @@
 #ifndef _COGNITION_H_
 #define _COGNITION_H_
 
-#include <math.h>
+#include "WaymoreLib.h"
 #include "Brain.h"
 
 typedef struct PIDGains
@@ -41,16 +41,16 @@ typedef enum CurrentState
     OBSTACLEAVOIDANCE
 }CurrentState;
 
-void initializePID();
+void initializeCognition();
 
-double calculateError(int * lineSensorReadings);
-
-double calculateCameraError(double * cameraLineDistances);
-
-void calculateSpeedLimit(double cameraError);
-
+double calculateLineError(int * lineSensorReadings);
 double calculateControlSignal(double error);
 
-void applyControlSignal(double controlSignal);
+double calculateCameraError(double * cameraLineDistances);
+double calculateSpeed(double cameraError);
+
+void applyControlSignal(double controlSignal, double speed);
+
+void uninitializeCognition();
 
 #endif

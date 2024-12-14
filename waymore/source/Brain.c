@@ -44,28 +44,22 @@ void initialize()
     ** Any libraries needed should be called here, and nowhere else.
     */
 
-    // Initialize register access GPIO library
+    // Initialize interfaces
     initializeGPIO();
-
-    // Initialize I2C library
     initializeI2C();
-
-    // Initialize camera library
-    // initializeCamera(CAMWIDTH, CAMHEIGHT, CAMSLICES);
-
-
-    // Initialize lidar library
-    initializeLidar(LIDARDEVICE, BAUDRATE, MOTOCTLGPIO);
-
-    // Initialize motor hat
     initializeMotorHat();
 
-    // Initialize PID controller
-    initializePID();
+    // Initialize senses
+    initializeLineSensors();
+    initializeCamera();
+    initializeLidar();
 
-    senseData.cameraLineDistances = malloc(sizeof(double)*CAMSLICES);
-    senseData.cameraLineConfidences = malloc(sizeof(double)*CAMSLICES);
-    senseData.lidarData = (LidarData*) malloc(sizeof(LidarData));
+    senseData.lineSensorData = getLineSensorDataRef();
+    senseData.cameraData = getCameraDataRef();
+    senseData.lidarData = getLidarDataRef();
+
+    // Initialize cognition
+    initializeCognition();
 }
 
 void uninitialize()
@@ -76,35 +70,36 @@ void uninitialize()
 
     printf("\nUninitializing each library...\n");
     
-    // uninitializeCamera();
+    uninitializeCognition();
+
     uninitializeLidar();
+    uninitializeCamera();
+    uninitializeLineSensors();
+    
     uninitializeGPIO();
-
-    free(senseData.cameraLineDistances);
-    free(senseData.cameraLineConfidences);
-    free(senseData.lidarData);
 }
 
-void startSenses()
+void start()
 {
     /*
-    **  This is where we will be calling the start() function of each
-    **  sense.
+    **  This is where we will be calling all start() functions
     */
 
-    startIR();
-    // startCamera();
+    startLineSensors();
+    startCamera();
     startLidar();
+    startMotorControl();
 }
 
-void stopSenses()
+void stop()
 {
     /*
-    **  This is where we will be calling the stop() function of each
-    **  sense.
+    **  This is where we will be calling all stop() functions
     */
 
-    stopIR();
+    // Camera and Lidar have no stop functions
+    stopMotorControl();
+    stopLineSensors();
 }
 
 // ============================================================================================= //
@@ -120,24 +115,20 @@ void mainLoop()
 
     while(running)
     {
-        senseData.lineSensorReadings = getLineSensorReadings();
+        double irError = calculateLineError(senseData.lineSensorData->levels);
+        double camError = calculateCameraError(senseData.cameraData->distances);
+        double nearestObject = senseData.lidarData->obstacles[0].closestAngle;
 
-        // getCameraLineDistances(senseData.cameraLineDistances);
+        printf("IR reading: %.2f\tCamera reading: %.2f\tLidar Angle: %.2f\n", irError, camError, nearestObject);
 
-        double error = calculateError(senseData.lineSensorReadings);
+        double controlSignal = calculateControlSignal(irError);
+        double speed = calculateSpeed(camError);
 
-        getLidarData(senseData.lidarData);
+        printf("Control Signal: %.2f\tSpeed: %.2f\n", controlSignal, speed);
 
-        // printf("First obstacle data. Distance: %.2f\n", senseData.lidarData[0].obstacles->closestDistance);
-
-        // double testcamErr = calculateCameraError(senseData.cameraLineDistances);
-        // printf("Camera sum: %.2f\n", testcamErr);
-
-        double controlSignal = calculateControlSignal(error);
-
-        // applyControlSignal(controlSignal);
+        applyControlSignal(controlSignal, speed);
         
-        milliWait(TIMESTEP_MS);
+        milliWait(10);
     }
 
     // Stop the motors and exit
@@ -150,16 +141,17 @@ void mainLoop()
 
 int main(int argc, char* argv[])
 {
+    // Initialize Ctrl-C signal handler for safe stopping
+	signal(SIGINT, signalHandler);
+
     printf("\nWelcome to Waymore.\n");
     // Initialize all the necessary libraries
     initialize();
 
     // Start the sensing threads
-    startSenses();
+    start();
 
-    // Initialize Ctrl-C signal handler for safe stopping
-	signal(SIGINT, signalHandler);
-    printf("\nYou may now safely use Ctrl-C to exit.\nStarting main loop in\n3...\n");
+    printf("\nUse Ctrl-C to exit.\nStarting in\n3...\n");
     milliWait(333);
     printf("2...\n");
     milliWait(333);
@@ -170,7 +162,7 @@ int main(int argc, char* argv[])
     mainLoop();
 
     // Stop the sensing threads
-    stopSenses();
+    stop();
 
     // Uninitialize the libraries
     uninitialize();

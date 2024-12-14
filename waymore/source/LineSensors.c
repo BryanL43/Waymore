@@ -19,10 +19,30 @@
 // ============================================================================================= //
 
 Thread * lineSensorThread;
-int lineReadings[LINESENSORCOUNT];
+LineSensorData * lineSensorData;
 
 // GPIO pins connected in ascending order, left to right (blue/purple wires)
 int lineSensorPins[] = {5, 17, 22, 23, 24, 25, 27};
+
+// ============================================================================================= //
+// Initialization and Uninitialization Functions
+// ============================================================================================= //
+
+void initializeLineSensors()
+{
+    lineSensorData = malloc(sizeof(LineSensorData));
+    if (lineSensorData == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for line sensor data. Exiting.\n");
+        exit(1);
+    }
+}
+
+void uninitializeLineSensors()
+{
+    free(lineSensorData);
+    lineSensorData = NULL;
+}
 
 // ============================================================================================= //
 // Main Loop & Business Logic
@@ -40,8 +60,9 @@ void * lineSensorThreadLoop(void * args)
             ** When the pins are HIGH (1), that means LINE.
             ** When the pins are LOW (0), that means NO LINE.
             */
-            lineReadings[i] = getPinLevel(lineSensorPins[i]);
+            lineSensorData->levels[i] = getPinLevel(lineSensorPins[i]);
         }
+        microWait(10);
     }
 
     return NULL;
@@ -51,7 +72,7 @@ void * lineSensorThreadLoop(void * args)
 // Start and Stop Functions
 // ============================================================================================= //
 
-void startIR()
+void startLineSensors()
 {
     lineSensorThread = startThread("IR sensor thread", lineSensorThreadLoop);
 
@@ -62,7 +83,7 @@ void startIR()
     }
 }
 
-void stopIR()
+void stopLineSensors()
 {
     stopThread(lineSensorThread);
     lineSensorThread = NULL;
@@ -72,9 +93,9 @@ void stopIR()
 // Functions for external use
 // ============================================================================================= //
 
-int * getLineSensorReadings()
+LineSensorData * getLineSensorDataRef()
 {
-    return lineReadings;
+    return lineSensorData;
 }
 
 // ============================================================================================= //
