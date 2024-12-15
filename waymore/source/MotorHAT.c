@@ -19,12 +19,15 @@
 // Definitions of Constants
 // ============================================================================================= //
 
+#define PRESCALE            0xFE
+
 #define MODE1               0x00
 #define DEFAULTVAL          0x00
+
 #define SUBADR1             0x02
 #define SUBADR2             0x03
 #define SUBADR3             0x04
-#define PRESCALE            0xFE
+
 #define ON_LOWBYTE          0x06
 #define ON_HIGHBYTE         0x07
 #define OFF_LOWBYTE         0x08
@@ -40,12 +43,24 @@ uint8_t deviceAddress;
 // Private Functions
 // ============================================================================================= //
 
-static void setPWM(uint8_t channel, uint32_t on, uint32_t off)
+static void setPWM(uint8_t channel, uint16_t on, uint16_t off)
 {
-    writeByteI2C(deviceAddress, ON_LOWBYTE + 4*channel, on & 0xFF);
-    writeByteI2C(deviceAddress, ON_HIGHBYTE + 4*channel, on >> 8);
-    writeByteI2C(deviceAddress, OFF_LOWBYTE + 4*channel, off & 0xFF);
-    writeByteI2C(deviceAddress, OFF_HIGHBYTE + 4*channel, off >> 8);
+    char buffer[5]; // First byte is the starting register, followed by four data bytes
+
+    // Starting register address for the given channel
+    buffer[0] = ON_LOWBYTE + 4 * channel;
+
+    // Data bytes for ON and OFF
+    buffer[1] = on & 0xFF;        // ON low byte
+    buffer[2] = (on >> 8) & 0xFF; // ON high byte
+    buffer[3] = off & 0xFF;       // OFF low byte
+    buffer[4] = (off >> 8) & 0xFF; // OFF high byte
+
+    // Send all data in one I²C write
+    if (bcm2835_i2c_write(buffer, sizeof(buffer)) != BCM2835_I2C_REASON_OK)
+    {
+        fprintf(stderr, "Failed to set PWM for channel %d\n", channel);
+    }
 }
 
 // ============================================================================================= //

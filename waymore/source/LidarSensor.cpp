@@ -54,7 +54,7 @@ LidarSensor::LidarSensor()
 // ============================================================================================= //
 void LidarSensor::lidarThreadRoutine() {
     try {
-        while (!shuttingDown.load()) {
+        while (!shuttingDown.load()) { 
             sl_lidar_response_measurement_node_hq_t nodes[8192];
             size_t count = _countof(nodes);
 
@@ -71,6 +71,7 @@ void LidarSensor::lidarThreadRoutine() {
                     if (obstacleCount >= MAXOBSTACLES) break;
                     double angle = (nodes[i].angle_z_q14 * 90.0f) / 16384.0f;
                     angle = fmod(angle, 360.0);
+                    if(angle < 60 || angle > 300) continue;
                     double distance = nodes[i].dist_mm_q2 / 4.0f;
 
                     // if(angle > 175 && angle < 185) {

@@ -16,10 +16,10 @@
 #include "../headers/Cognition.h"
 
 const int maxSpeed = 100;
-const int minSpeed = 50;
+const int minSpeed = 60;
 int baseSpeed = minSpeed;
 
-const int camErrorThresh = 80;
+const int camErrorThresh = 100;
 
 static  double              lineSensorPositions[LINESENSORCOUNT] = {};
 static  PIDGains            gain;
@@ -28,16 +28,13 @@ static  CurrentState        currentState;
 
 static double currentIntegral = 0;
 
-const int lineErrorBufferLength = 5;
-RingBuffer * lineErrorBuffer;
-
 void initializeCognition()
 {
     printf("Initializing Cognitive Functions...");
 
-    gain.proportional = 30.0;
+    gain.proportional = 100.0;
     gain.integral = 0.01;
-    gain.derivative = 5.0;
+    gain.derivative = 1.0;
 
     lastLineLocation = DEADCENTER;
     currentState = NORMAL;
@@ -48,10 +45,13 @@ void initializeCognition()
         lineSensorPositions[i] = (double)(i) - ((double)(LINESENSORCOUNT - 1) / 2);
     }
 
-    // Initialize the ring buffer
-    lineErrorBuffer = newRingBuffer(lineErrorBufferLength);
-
     printf("done.\n");
+}
+
+void checkForObstacles(LidarData lidarData)
+{
+    int obstacleDetected = FALSE;
+    
 }
 
 double calculateLineError(int * lineSensorLevels)
@@ -87,13 +87,8 @@ double calculateLineError(int * lineSensorLevels)
         lastLineLocation = DEADCENTER;
         //printf("Line is dead center\n");
     }
-    
-    pushRingBuffer(lineErrorBuffer, error);
- 
-    //double mean = getMeanRingBuffer(lineErrorBuffer);
-    double median = getMedianRingBuffer(lineErrorBuffer);
 
-    return median;
+    return error;
 }
 
 double calculateCameraError(double * cameraLineDistance)
@@ -196,22 +191,17 @@ void applyControlSignal(double controlSignal, double speed)
             // Send power to the wheels
             commandMotors(FORWARD, left, right);
             break;
-
+            
         case CORNERINGLEFT:
-            commandMotors(ROTATELEFT, 60, 40);
+            commandMotors(ROTATELEFT, 50, 50);
             break;
         
         case CORNERINGRIGHT:
-            commandMotors(ROTATERIGHT, 40, 60);
+            commandMotors(ROTATERIGHT, 50, 50);
             break;
 
         case OBSTACLEAVOIDANCE:
             // Do stuff
             break;
     }
-}
-
-void uninitializeCognition()
-{
-    destroyRingBuffer(lineErrorBuffer);
 }

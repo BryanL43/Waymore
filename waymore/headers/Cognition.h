@@ -51,6 +51,4 @@ double calculateSpeed(double cameraError);
 
 void applyControlSignal(double controlSignal, double speed);
 
-void uninitializeCognition();
-
 #endif

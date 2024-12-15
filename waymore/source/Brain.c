@@ -69,13 +69,10 @@ void uninitialize()
     */
 
     printf("\nUninitializing each library...\n");
-    
-    uninitializeCognition();
 
     uninitializeLidar();
     uninitializeCamera();
     uninitializeLineSensors();
-    
     uninitializeGPIO();
 }
 
@@ -88,7 +85,6 @@ void start()
     startLineSensors();
     startCamera();
     startLidar();
-    startMotorControl();
 }
 
 void stop()
@@ -98,7 +94,6 @@ void stop()
     */
 
     // Camera and Lidar have no stop functions
-    stopMotorControl();
     stopLineSensors();
 }
 
@@ -115,20 +110,20 @@ void mainLoop()
 
     while(running)
     {
+        struct timespec start = currentTime();
         double irError = calculateLineError(senseData.lineSensorData->levels);
         double camError = calculateCameraError(senseData.cameraData->distances);
         double nearestObject = senseData.lidarData->obstacles[0].closestAngle;
 
-        printf("IR reading: %.2f\tCamera reading: %.2f\tLidar Angle: %.2f\n", irError, camError, nearestObject);
+        printf("IR Error: %0.2f\tCam Error: %0.2f\n", irError, camError);
 
         double controlSignal = calculateControlSignal(irError);
         double speed = calculateSpeed(camError);
 
-        printf("Control Signal: %.2f\tSpeed: %.2f\n", controlSignal, speed);
-
         applyControlSignal(controlSignal, speed);
-        
-        milliWait(10);
+        unsigned long elapsed = microSecondsSince(&start);
+
+        microWait((TIMESTEP_MS*1000) - elapsed);
     }
 
     // Stop the motors and exit

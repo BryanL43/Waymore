@@ -20,6 +20,7 @@
 // ============================================================================================= //
 
 #include "MotorHAT.h"
+#include "Brain.h"
 
 // ============================================================================================= //
 // Definitions of Structures or States
@@ -40,8 +41,6 @@ typedef enum MotorAction
 
 void initializeMotorHat();
 void commandMotors(MotorAction action, int leftSpeed, int rightSpeed);
-void startMotorControl();
-void stopMotorControl();
 
 // ============================================================================================= //
 // End of File

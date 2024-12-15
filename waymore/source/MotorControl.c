@@ -19,7 +19,6 @@
 // ============================================================================================= //
 
 #define MOTORHATADDR 0x40
-#define DEFAULTFREQ  1200
 
 #define LEFTMOTOR	0
 #define AIN1		1
@@ -32,47 +31,24 @@
 // Definitions of Private Variables and States
 // ============================================================================================= //
 
-volatile MotorAction newAction = HALT;
-volatile MotorAction currentAction = HALT;
-volatile int leftSpeed = 0;
-volatile int rightSpeed = 0;
+const int frequencyHz = 1500;
 
-Thread * motorControlThread;
+MotorAction currentAction = FORWARD;
+int currentLeftSpeed = 0;
+int currentRightSpeed = 0;
 
 // ============================================================================================= //
-// Public Facing Functions
+// Private functions
 // ============================================================================================= //
 
-void initializeMotorHat()
-{
-	/*
-	**	Initializes the Motor given an I2C address and a frequency parameter.
-	*/
-
-	printf("Initializing waveshare motor HAT...");
-
-	registerMotorHat(MOTORHATADDR);
-	setMotorHatFrequency(DEFAULTFREQ);
-	commandMotors(HALT, 0, 0);
-
-	printf("done.\n");
-}
-
-void commandMotors(MotorAction action, int left, int right)
-{
-	newAction = action;
-	leftSpeed = left;
-	rightSpeed = right;
-}
-
-void applyMotorCommand()
+void commandMotors(MotorAction newAction, int newLeftSpeed, int newRightSpeed)
 {
 	// Validate the speed inputs on both motors
-	if (leftSpeed > 100) leftSpeed = 100;
-	else if (leftSpeed < 0) leftSpeed = 0;
+	if (newLeftSpeed > 100) newLeftSpeed = 100;
+	else if (newLeftSpeed < 0) newLeftSpeed = 0;
 
-    if (rightSpeed > 100) rightSpeed = 100;
-	else if (rightSpeed < 0) rightSpeed = 0;
+    if (newRightSpeed > 100) newRightSpeed = 100;
+	else if (newRightSpeed < 0) newRightSpeed = 0;
 
 	switch (newAction)
 	{
@@ -87,9 +63,18 @@ void applyMotorCommand()
 				currentAction = newAction;
 			}
 			// Set the speeds
-			setDutyCycle(LEFTMOTOR, leftSpeed);
-			setDutyCycle(RIGHTMOTOR, rightSpeed);
+			if(newLeftSpeed != currentLeftSpeed)
+			{
+				setDutyCycle(LEFTMOTOR, newLeftSpeed);
+				currentLeftSpeed = newLeftSpeed;
+			}
+			if(newRightSpeed != currentRightSpeed)
+			{
+				setDutyCycle(RIGHTMOTOR, newRightSpeed);
+				currentRightSpeed = newRightSpeed;
+			}
 			break;
+
 		case (ROTATELEFT):
 			// Apply the new direction if different
 			if (currentAction != newAction)
@@ -101,10 +86,19 @@ void applyMotorCommand()
 				currentAction = newAction;
 			}
 
-			// Set the speeds (both using leftSpeed)
-			setDutyCycle(LEFTMOTOR, leftSpeed);
-			setDutyCycle(RIGHTMOTOR, leftSpeed);
+			// Set the speeds
+			if(newLeftSpeed != currentLeftSpeed)
+			{
+				setDutyCycle(LEFTMOTOR, newLeftSpeed);
+				currentLeftSpeed = newLeftSpeed;
+			}
+			if(newRightSpeed != currentRightSpeed)
+			{
+				setDutyCycle(RIGHTMOTOR, newRightSpeed);
+				currentRightSpeed = newRightSpeed;
+			}
 			break;
+
 		case (ROTATERIGHT):
 			// Apply the new direction if different
 			if (currentAction != newAction)
@@ -116,10 +110,19 @@ void applyMotorCommand()
 				currentAction = newAction;
 			}
 
-			// Set the speeds (both using leftSpeed)
-			setDutyCycle(LEFTMOTOR, leftSpeed);
-			setDutyCycle(RIGHTMOTOR, leftSpeed);
+			// Set the speeds
+			if(newLeftSpeed != currentLeftSpeed)
+			{
+				setDutyCycle(LEFTMOTOR, newLeftSpeed);
+				currentLeftSpeed = newLeftSpeed;
+			}
+			if(newRightSpeed != currentRightSpeed)
+			{
+				setDutyCycle(RIGHTMOTOR, newRightSpeed);
+				currentRightSpeed = newRightSpeed;
+			}
 			break;
+
 		case (BACKWARD):
 			// Apply the new direction if different
 			if (currentAction != newAction)
@@ -130,10 +133,20 @@ void applyMotorCommand()
 				setLevel(BIN2, 1);
 				currentAction = newAction;
 			}
+
 			// Set the speeds
-			setDutyCycle(LEFTMOTOR, leftSpeed);
-			setDutyCycle(RIGHTMOTOR, rightSpeed);
+			if(newLeftSpeed != currentLeftSpeed)
+			{
+				setDutyCycle(LEFTMOTOR, newLeftSpeed);
+				currentLeftSpeed = newLeftSpeed;
+			}
+			if(newRightSpeed != currentRightSpeed)
+			{
+				setDutyCycle(RIGHTMOTOR, newRightSpeed);
+				currentRightSpeed = newRightSpeed;
+			}
 			break;
+
 		case (HALT):
 			// Apply the new direction if different
 			if (currentAction != newAction)
@@ -144,46 +157,40 @@ void applyMotorCommand()
 				setLevel(BIN2, 0);
 				currentAction = newAction;
 			}
+
 			// Set the speeds
-			setDutyCycle(LEFTMOTOR, 0);
-			setDutyCycle(RIGHTMOTOR, 0);
+			if(newLeftSpeed != currentLeftSpeed)
+			{
+				setDutyCycle(LEFTMOTOR, newLeftSpeed);
+				currentLeftSpeed = newLeftSpeed;
+			}
+			if(newRightSpeed != currentRightSpeed)
+			{
+				setDutyCycle(RIGHTMOTOR, newRightSpeed);
+				currentRightSpeed = newRightSpeed;
+			}
 			break;
 	}
 }
 
-void * motorControlLoop(void * args)
+// ============================================================================================= //
+// Public functions
+// ============================================================================================= //
+
+void initializeMotorHat()
 {
 	/*
-	**	Control loop for the motors.
-	**	Will be called by the motorThread.
+	**	Initializes the Motor given an I2C address and a frequency parameter.
 	*/
-	(void) args;
 
-	while (motorControlThread->running)
-	{
-		applyMotorCommand();
-		milliWait(1);
-	}
+	printf("Initializing waveshare motor HAT...");
+
+	registerMotorHat(MOTORHATADDR);
+	setMotorHatFrequency(frequencyHz);
 
 	commandMotors(HALT, 0, 0);
-	applyMotorCommand();
-	return NULL;
-}
 
-void startMotorControl()
-{
-	motorControlThread = startThread("Motor control thread", motorControlLoop);
-	if(motorControlThread == NULL)
-    {
-        fprintf(stderr, "Failed to start the motor control thread. Exiting.\n");
-        exit(1);
-    }
-}
-
-void stopMotorControl()
-{
-	stopThread(motorControlThread);
-	motorControlThread = NULL;
+	printf("done.\n");
 }
 
 // ============================================================================================= //

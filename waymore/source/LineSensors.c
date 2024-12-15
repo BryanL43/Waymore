@@ -62,7 +62,7 @@ void * lineSensorThreadLoop(void * args)
             */
             lineSensorData->levels[i] = getPinLevel(lineSensorPins[i]);
         }
-        microWait(10);
+        microWait(1);
     }
 
     return NULL;

@@ -136,7 +136,7 @@ void CameraSensor::fillRequest(Request * request)
                 // Render the frame, then reuse the buffer and re-queue the request
                 processFrame(buffer);
                 request->reuse(Request::ReuseBuffers);
-                std::this_thread::yield();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100Hz max
                 cam->queueRequest(request);
             } catch (const std::exception& e) {
                 std::cerr << "Error trying to render frame: " << e.what() << std::endl;
