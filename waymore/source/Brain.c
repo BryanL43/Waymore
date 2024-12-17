@@ -18,7 +18,7 @@
 // ============================================================================================= //
 
 volatile int running = TRUE;
-SensoryData senseData;
+SenseData * senseData;
 
 // ============================================================================================= //
 // Signals and Controls
@@ -54,9 +54,10 @@ void initialize()
     initializeCamera();
     initializeLidar();
 
-    senseData.lineSensorData = getLineSensorDataRef();
-    senseData.cameraData = getCameraDataRef();
-    senseData.lidarData = getLidarDataRef();
+    senseData = (SenseData *) malloc(sizeof(SenseData));
+    senseData->lineSensorData = getLineSensorDataRef();
+    senseData->cameraData = getCameraDataRef();
+    senseData->lidarData = getLidarDataRef();
 
     // Initialize cognition
     initializeCognition();
@@ -74,6 +75,8 @@ void uninitialize()
     uninitializeCamera();
     uninitializeLineSensors();
     uninitializeGPIO();
+    free(senseData);
+    senseData = NULL;
 }
 
 void start()
@@ -97,6 +100,34 @@ void stop()
     stopLineSensors();
 }
 
+void printTestStatements()
+{
+        // Print the line sensor data
+        printf("Line Sensors: ");
+        for (int i = 0; i < LINESENSORCOUNT; i++)
+        {
+            printf("%d ", senseData->lineSensorData->levels[i]);
+        }
+        printf("\n");
+
+        // Print the camera data
+        printf("Camera distances: ");
+        for (int i = 0; i < CAMSLICES; i++)
+        {
+            printf("%f ", senseData->cameraData->distances[i]);
+        }
+        printf("\n");
+
+        // Print the lidar data
+        for (int i = 0; i < senseData->lidarData->validObstacles; i++)
+        {
+            printf("Obstacle %d: angle %.2f, distance %.2f\n", i,
+                senseData->lidarData->obstacles[i].closestAngle,
+                senseData->lidarData->obstacles[i].closestDistance
+                );
+        }
+}
+
 // ============================================================================================= //
 // Main Loop & Business Logic
 // ============================================================================================= //
@@ -107,23 +138,14 @@ void mainLoop()
     **  start by collecting the latest data from our senses
     **  and then interpret the senseData and act on it.
     */
-
     while(running)
     {
         struct timespec start = currentTime();
-        double irError = calculateLineError(senseData.lineSensorData->levels);
-        double camError = calculateCameraError(senseData.cameraData->distances);
-        double nearestObject = senseData.lidarData->obstacles[0].closestAngle;
-
-        printf("IR Error: %0.2f\tCam Error: %0.2f\n", irError, camError);
-
-        double controlSignal = calculateControlSignal(irError);
-        double speed = calculateSpeed(camError);
-
-        applyControlSignal(controlSignal, speed);
+        makeDecision(senseData);
         unsigned long elapsed = microSecondsSince(&start);
-
-        microWait((TIMESTEP_MS*1000) - elapsed);
+        milliWait(TIMESTEP_MS - (elapsed / 1000));
+        // elapsed = microSecondsSince(&start);
+        // printf("Elapsed time: %lu\n", elapsed);
     }
 
     // Stop the motors and exit

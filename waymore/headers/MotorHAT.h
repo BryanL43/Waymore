@@ -22,10 +22,23 @@
 #include "WaymoreLib.h"
 
 // ============================================================================================= //
+// Definitions of Constants
+// ============================================================================================= //
+
+#define MOTORHATADDR 0x40
+
+#define LEFTMOTOR	0
+#define AIN1		1
+#define AIN2		2
+#define BIN1		3
+#define BIN2		4
+#define RIGHTMOTOR	5
+
+// ============================================================================================= //
 // Library Functions
 // ============================================================================================= //
 
-int registerMotorHat(uint8_t ADDR);
+void initializeMotorHat();
 
 int setMotorHatFrequency(uint32_t frequency);
 

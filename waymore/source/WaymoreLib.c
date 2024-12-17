@@ -307,6 +307,23 @@ int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value)
 	return 0;
 }
 
+int writeBytesI2C(uint8_t ADDR, const char * buf, uint32_t len)
+{
+	if(currentI2cAddr != ADDR)
+	{
+		currentI2cAddr = ADDR;
+		bcm2835_i2c_setSlaveAddress(ADDR);
+	}
+
+	if (bcm2835_i2c_write(buf, len) != BCM2835_I2C_REASON_OK)
+	{
+		fprintf(stderr, "Failed to write bytes to I2C address 0x%02x!\n", ADDR);
+		return -1;
+	}
+
+	return 0;
+}
+
 // ============================================================================================= //
 // Threading Initialization and Uninitialization Functions
 // ============================================================================================= //
@@ -538,6 +555,16 @@ void destroyRingBuffer(RingBuffer * rb)
 	free(rb);
 	rb = NULL;
 }
+
+// ============================================================================================= //
+// Fuzzy Logic Functions
+// ============================================================================================= //
+
+int fuzzyMatchDouble(double A, double B, double tolerance)
+{
+	return (A >= B - tolerance) && (A <= B + tolerance);
+}
+
 
 // ============================================================================================= //
 // End of File

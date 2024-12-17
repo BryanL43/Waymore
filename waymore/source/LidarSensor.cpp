@@ -52,6 +52,7 @@ LidarSensor::LidarSensor()
 // ============================================================================================= //
 // Thread routine for Lidar obstacle data acquistion
 // ============================================================================================= //
+static LidarData sweepdata;
 void LidarSensor::lidarThreadRoutine() {
     try {
         while (!shuttingDown.load()) { 
@@ -62,17 +63,26 @@ void LidarSensor::lidarThreadRoutine() {
             if (SL_IS_OK(op_result)) {
                 lidar->ascendScanData(nodes, count);
 
+                // 360 Lidar scan setup
+                sweepdata = {0};
                 double leftObstAngle = NAN, rightObstAngle = NAN, closestAngle = NAN;
-                double closestDist = 99999;
-                int obstacleCount = 0;
+                double closestDist = 1e5;
 
-                // 360 Lidar scan
                 for (size_t i = 0; i < count; i++) {
-                    if (obstacleCount >= MAXOBSTACLES) break;
+                    // Limit the number of obstacles to MAXOBSTACLES
+                    if (sweepdata.validObstacles >= MAXOBSTACLES) 
+                        break;
+
+                    // Filter out invalid angles
                     double angle = (nodes[i].angle_z_q14 * 90.0f) / 16384.0f;
-                    angle = fmod(angle, 360.0);
-                    if(angle < 60 || angle > 300) continue;
+                    if(angle < 30 || angle > 330) 
+                        continue;
+
+                    // Filter out invalid distances
                     double distance = nodes[i].dist_mm_q2 / 4.0f;
+                    if (distance > 2000 || distance < 150)
+                        continue;
+                    
 
                     // if(angle > 175 && angle < 185) {
                     //     printf("Angle: %.2f, Distance: %.2f\n", angle, distance);
@@ -97,20 +107,22 @@ void LidarSensor::lidarThreadRoutine() {
                     } else {
                         if(isnan(leftObstAngle)) continue;
                         // We have finished mapping this obstacle
-                        lidarData->obstacles[obstacleCount].closestAngle = closestAngle;
-                        lidarData->obstacles[obstacleCount].closestDistance = closestDist;
-                        lidarData->obstacles[obstacleCount].leftObstacleAngle = leftObstAngle;
-                        lidarData->obstacles[obstacleCount].rightObstacleAngle = rightObstAngle;
-                        lidarData->validObstacles ++;
+                        sweepdata.obstacles[sweepdata.validObstacles].closestAngle = closestAngle;
+                        sweepdata.obstacles[sweepdata.validObstacles].closestDistance = closestDist;
+                        sweepdata.obstacles[sweepdata.validObstacles].leftObstacleAngle = leftObstAngle;
+                        sweepdata.obstacles[sweepdata.validObstacles].rightObstacleAngle = rightObstAngle;
+                        sweepdata.validObstacles ++;
 
                         // Reset scoped vars for the next obstacle
                         leftObstAngle = NAN;
                         rightObstAngle = NAN;
                         closestAngle = NAN;
-                        closestDist = 99999;
+                        closestDist = 1e5;
                     }
                 }
+                *lidarData = sweepdata;
             } else {
+                // Stop the motor and throw an exception
                 setPinLevel(MOTOCTLGPIO, LOW);
                 throw std::runtime_error("Lidar failed to acquire scanned data!");
             }

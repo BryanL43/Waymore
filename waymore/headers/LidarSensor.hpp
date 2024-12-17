@@ -1,5 +1,5 @@
-#ifndef _LIDARSENSOR_H_
-#define _LIDARSENSOR_H_
+#ifndef _LIDAR_SENSOR_HPP_
+#define _LIDAR_SENSOR_HPP_
 
 #include "Lidar.h"
 #include "sl_lidar.h" 

@@ -5,15 +5,15 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: ir.h
+* File:: LineSensors.h
 *
 * Description:: Library of functions and wrappers for ir
 *		        sensor functionality to be called by brain.c
 *
 **************************************************************/
 
-#ifndef _IR_H_
-#define _IR_H_
+#ifndef _LINE_SENSORS_H_
+#define _LINE_SENSORS_H_
 
 // ============================================================================================= //
 // Library Linking

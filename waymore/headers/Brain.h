@@ -36,18 +36,18 @@
 // Definitions of Constants
 // ============================================================================================= //
 
-#define TIMESTEP_MS 5 // 200 Hz control loop
+#define TIMESTEP_MS 10 // 100 Hz control loop
 
 // ============================================================================================= //
 // Definitions of Structures
 // ============================================================================================= //
 
-typedef struct
+typedef struct SenseData
 {
     LineSensorData * lineSensorData;
     CameraData * cameraData;
     LidarData * lidarData;
-} SensoryData;
+}SenseData;
 
 // ============================================================================================= //
 // Signals and Controls

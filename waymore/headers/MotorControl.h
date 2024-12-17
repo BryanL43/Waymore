@@ -20,7 +20,7 @@
 // ============================================================================================= //
 
 #include "MotorHAT.h"
-#include "Brain.h"
+#include "WaymoreLib.h"
 
 // ============================================================================================= //
 // Definitions of Structures or States
@@ -39,7 +39,6 @@ typedef enum MotorAction
 // Public facing functions
 // ============================================================================================= //
 
-void initializeMotorHat();
 void commandMotors(MotorAction action, int leftSpeed, int rightSpeed);
 
 // ============================================================================================= //

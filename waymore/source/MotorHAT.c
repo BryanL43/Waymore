@@ -5,11 +5,9 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: PCA9685.c
+* File:: MotorHAT.c
 *
-* Description:: Implementation of modified version of
-*               WaveShare's motor demo libraries, adapted to
-*               the needs of our project.
+* Description:: Implementation for MotorHAT library of functions
 *
 **************************************************************/
 
@@ -39,48 +37,42 @@
 
 uint8_t deviceAddress;
 
+const int frequencyHz = 1400;
+
 // ============================================================================================= //
 // Private Functions
 // ============================================================================================= //
 
 static void setPWM(uint8_t channel, uint16_t on, uint16_t off)
 {
-    char buffer[5]; // First byte is the starting register, followed by four data bytes
-
-    // Starting register address for the given channel
-    buffer[0] = ON_LOWBYTE + 4 * channel;
-
-    // Data bytes for ON and OFF
-    buffer[1] = on & 0xFF;        // ON low byte
-    buffer[2] = (on >> 8) & 0xFF; // ON high byte
-    buffer[3] = off & 0xFF;       // OFF low byte
-    buffer[4] = (off >> 8) & 0xFF; // OFF high byte
-
-    // Send all data in one I²C write
-    if (bcm2835_i2c_write(buffer, sizeof(buffer)) != BCM2835_I2C_REASON_OK)
-    {
-        fprintf(stderr, "Failed to set PWM for channel %d\n", channel);
-    }
+    writeByteI2C(deviceAddress, ON_LOWBYTE + 4 * channel, on & 0xFF);
+    writeByteI2C(deviceAddress, ON_HIGHBYTE + 4 * channel, (on >> 8) & 0xFF);
+    writeByteI2C(deviceAddress, OFF_LOWBYTE + 4 * channel, off & 0xFF);
+    writeByteI2C(deviceAddress, OFF_HIGHBYTE + 4 * channel, (off >> 8) & 0xFF);
 }
 
 // ============================================================================================= //
 // Public Functions
 // ============================================================================================= //
 
-int registerMotorHat(uint8_t ADDR)
+void initializeMotorHat()
 {
-    registerDeviceI2C(ADDR);
-    deviceAddress = ADDR;
+	/*
+	**	Initializes the Motor given an I2C address and a frequency parameter.
+	*/
+
+	printf("Initializing waveshare motor HAT...");
+
+    registerDeviceI2C(MOTORHATADDR);
 
     // Set PCA9685 to default mode
-    if (writeByteI2C(ADDR, MODE1, DEFAULTVAL) != 0) {
-        fprintf(stderr, "Failed to configure MODE1 register\n");
-        return -1;
-    }
+    writeByteI2C(MOTORHATADDR, MODE1, DEFAULTVAL);
 
-    milliWait(1);
+    deviceAddress = MOTORHATADDR;
 
-    return 0;
+    setMotorHatFrequency(frequencyHz);
+
+	printf("done.\n");
 }
 
 int setMotorHatFrequency(uint32_t frequency)

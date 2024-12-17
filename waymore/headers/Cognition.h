@@ -6,18 +6,22 @@
 * Github-Name:: ...
 * Project:: Final Project
 *
-* File:: irPID.h
+* File:: Cognition.h
 *
-* Description:: Declarations for PID controller
-*				functionality
+* Description:: Declarations for Cognitive system
 *
 **************************************************************/
 
 #ifndef _COGNITION_H_
 #define _COGNITION_H_
 
-#include "WaymoreLib.h"
 #include "Brain.h"
+
+// ============================================================================================= //
+// Definitions of Structure and Enumerations
+// ============================================================================================= //
+
+typedef struct SenseData SenseData; // Forward declaration of struct from Brain.h
 
 typedef struct PIDGains
 {
@@ -28,27 +32,69 @@ typedef struct PIDGains
 
 typedef enum LastLineLocation
 {
-    LEFTOFCAR,
-    DEADCENTER,
-    RIGHTOFCAR
+    LeftOfCar,
+    DeadCenter,
+    RightOfCar
 }LastLineLocation;
 
-typedef enum CurrentState
+typedef enum CurrentAction
 {
-    NORMAL,
-    CORNERINGLEFT,
-    CORNERINGRIGHT,
-    OBSTACLEAVOIDANCE
-}CurrentState;
+    LineFollowing,
+    AvoidingObstacle,
+    LassoingObstacle,
+    LineCornering
+}CurrentAction;
+
+typedef enum LassoPath
+{
+    LassoRight,
+    LassoLeft,
+}LassoPath;
+
+// ============================================================================================= //
+// Functions for Brain
+// ============================================================================================= //
 
 void initializeCognition();
+void makeDecision(SenseData * senseData);
 
-double calculateLineError(int * lineSensorReadings);
-double calculateControlSignal(double error);
+// ============================================================================================= //
+// Lidar Related Functions
+// ============================================================================================= //
 
-double calculateCameraError(double * cameraLineDistances);
-double calculateSpeed(double cameraError);
+ObstacleData * scanForObstacleAhead(LidarData * lidarData);
+ObstacleData * trackObstacle(LidarData * lidarData);
 
-void applyControlSignal(double controlSignal, double speed);
+// ============================================================================================= //
+// Line Sensor Related Functions
+// ============================================================================================= //
+
+double calculateLinePosition(LineSensorData * lineSensorData);
+
+// ============================================================================================= //
+// Camera Related Functions
+// ============================================================================================= //
+
+double calculateCameraError(CameraData * cameraData);
+double calculateBaseSpeed(double cameraError);
+
+// ============================================================================================= //
+// PID Error Calculation
+// ============================================================================================= //
+
+double calculateError(double readings, double reference);
+
+// ============================================================================================= //
+// Enumerated Control Functions
+// ============================================================================================= //
+
+void lineFollow(double linePosition, CameraData * cameraData);
+void lineCorner();
+void avoidObstacle(LidarData * lidarData);
+void lassoObstacle(LidarData * lidarData);
+
+// ============================================================================================= //
+// End of File
+// ============================================================================================= //
 
 #endif

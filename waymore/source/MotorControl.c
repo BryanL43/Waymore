@@ -15,7 +15,7 @@
 #include "../headers/MotorControl.h"
 
 // ============================================================================================= //
-// Definitions of Constants
+// Definitions of Private Variables and States
 // ============================================================================================= //
 
 #define MOTORHATADDR 0x40
@@ -27,13 +27,7 @@
 #define BIN2		4
 #define RIGHTMOTOR	5
 
-// ============================================================================================= //
-// Definitions of Private Variables and States
-// ============================================================================================= //
-
-const int frequencyHz = 1500;
-
-MotorAction currentAction = FORWARD;
+MotorAction currentAction = HALT;
 int currentLeftSpeed = 0;
 int currentRightSpeed = 0;
 
@@ -53,144 +47,73 @@ void commandMotors(MotorAction newAction, int newLeftSpeed, int newRightSpeed)
 	switch (newAction)
 	{
 		case (FORWARD):
-			// Apply the new direction if different
-			if (currentAction != newAction)
-			{
-				setLevel(AIN1, 0);
-				setLevel(AIN2, 1);
-				setLevel(BIN1, 1);
-				setLevel(BIN2, 0);
-				currentAction = newAction;
-			}
-			// Set the speeds
-			if(newLeftSpeed != currentLeftSpeed)
-			{
-				setDutyCycle(LEFTMOTOR, newLeftSpeed);
-				currentLeftSpeed = newLeftSpeed;
-			}
-			if(newRightSpeed != currentRightSpeed)
-			{
-				setDutyCycle(RIGHTMOTOR, newRightSpeed);
-				currentRightSpeed = newRightSpeed;
-			}
+			setDutyCycle(RIGHTMOTOR, newRightSpeed);
+			setDutyCycle(LEFTMOTOR, newLeftSpeed);
+			setLevel(AIN1, 0);
+			setLevel(AIN2, 1);
+			setLevel(BIN1, 1);
+			setLevel(BIN2, 0);
+			currentAction = newAction;
+			currentLeftSpeed = newLeftSpeed;
+			currentRightSpeed = newRightSpeed;
 			break;
 
 		case (ROTATELEFT):
 			// Apply the new direction if different
-			if (currentAction != newAction)
-			{
-				setLevel(AIN1, 1);
-				setLevel(AIN2, 0);
-				setLevel(BIN1, 1);
-				setLevel(BIN2, 0);
-				currentAction = newAction;
-			}
+			setLevel(AIN1, 1);
+			setLevel(AIN2, 0);
+			setLevel(BIN1, 1);
+			setLevel(BIN2, 0);
+			currentAction = newAction;
 
 			// Set the speeds
-			if(newLeftSpeed != currentLeftSpeed)
-			{
-				setDutyCycle(LEFTMOTOR, newLeftSpeed);
-				currentLeftSpeed = newLeftSpeed;
-			}
-			if(newRightSpeed != currentRightSpeed)
-			{
-				setDutyCycle(RIGHTMOTOR, newRightSpeed);
-				currentRightSpeed = newRightSpeed;
-			}
+			setDutyCycle(LEFTMOTOR, newLeftSpeed);
+			currentLeftSpeed = newLeftSpeed;
+			setDutyCycle(RIGHTMOTOR, newRightSpeed);
+			currentRightSpeed = newRightSpeed;
 			break;
 
 		case (ROTATERIGHT):
 			// Apply the new direction if different
-			if (currentAction != newAction)
-			{
-				setLevel(AIN1, 0);
-				setLevel(AIN2, 1);
-				setLevel(BIN1, 0);
-				setLevel(BIN2, 1);
-				currentAction = newAction;
-			}
-
+			setLevel(AIN1, 0);
+			setLevel(AIN2, 1);
+			setLevel(BIN1, 0);
+			setLevel(BIN2, 1);
+			currentAction = newAction;
 			// Set the speeds
-			if(newLeftSpeed != currentLeftSpeed)
-			{
-				setDutyCycle(LEFTMOTOR, newLeftSpeed);
-				currentLeftSpeed = newLeftSpeed;
-			}
-			if(newRightSpeed != currentRightSpeed)
-			{
-				setDutyCycle(RIGHTMOTOR, newRightSpeed);
-				currentRightSpeed = newRightSpeed;
-			}
+			setDutyCycle(LEFTMOTOR, newLeftSpeed);
+			currentLeftSpeed = newLeftSpeed;
+			setDutyCycle(RIGHTMOTOR, newRightSpeed);
+			currentRightSpeed = newRightSpeed;
 			break;
 
 		case (BACKWARD):
 			// Apply the new direction if different
-			if (currentAction != newAction)
-			{
-				setLevel(AIN1, 1);
-				setLevel(AIN2, 0);
-				setLevel(BIN1, 0);
-				setLevel(BIN2, 1);
-				currentAction = newAction;
-			}
-
-			// Set the speeds
-			if(newLeftSpeed != currentLeftSpeed)
-			{
-				setDutyCycle(LEFTMOTOR, newLeftSpeed);
-				currentLeftSpeed = newLeftSpeed;
-			}
-			if(newRightSpeed != currentRightSpeed)
-			{
-				setDutyCycle(RIGHTMOTOR, newRightSpeed);
-				currentRightSpeed = newRightSpeed;
-			}
+			setLevel(AIN1, 1);
+			setLevel(AIN2, 0);
+			setLevel(BIN1, 0);
+			setLevel(BIN2, 1);
+			currentAction = newAction;
+			setDutyCycle(LEFTMOTOR, newLeftSpeed);
+			currentLeftSpeed = newLeftSpeed;
+			setDutyCycle(RIGHTMOTOR, newRightSpeed);
+			currentRightSpeed = newRightSpeed;
 			break;
 
 		case (HALT):
 			// Apply the new direction if different
-			if (currentAction != newAction)
-			{
-				setLevel(AIN1, 0);
-				setLevel(AIN2, 0);
-				setLevel(BIN1, 0);
-				setLevel(BIN2, 0);
-				currentAction = newAction;
-			}
-
+			setLevel(AIN1, 0);
+			setLevel(AIN2, 0);
+			setLevel(BIN1, 0);
+			setLevel(BIN2, 0);
+			currentAction = newAction;
 			// Set the speeds
-			if(newLeftSpeed != currentLeftSpeed)
-			{
-				setDutyCycle(LEFTMOTOR, newLeftSpeed);
-				currentLeftSpeed = newLeftSpeed;
-			}
-			if(newRightSpeed != currentRightSpeed)
-			{
-				setDutyCycle(RIGHTMOTOR, newRightSpeed);
-				currentRightSpeed = newRightSpeed;
-			}
+			setDutyCycle(LEFTMOTOR, newLeftSpeed);
+			currentLeftSpeed = newLeftSpeed;
+			setDutyCycle(RIGHTMOTOR, newRightSpeed);
+			currentRightSpeed = newRightSpeed;
 			break;
 	}
-}
-
-// ============================================================================================= //
-// Public functions
-// ============================================================================================= //
-
-void initializeMotorHat()
-{
-	/*
-	**	Initializes the Motor given an I2C address and a frequency parameter.
-	*/
-
-	printf("Initializing waveshare motor HAT...");
-
-	registerMotorHat(MOTORHATADDR);
-	setMotorHatFrequency(frequencyHz);
-
-	commandMotors(HALT, 0, 0);
-
-	printf("done.\n");
 }
 
 // ============================================================================================= //
