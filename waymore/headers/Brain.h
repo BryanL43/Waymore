@@ -23,8 +23,9 @@
 
 // Include senses
 #include "LineSensors.h"
-#include "Camera.h"
+//#include "Camera.h"
 #include "Lidar.h"
+#include "RgbSensor.h"
 
 // Include cognitive functions
 #include "Cognition.h"
@@ -36,7 +37,7 @@
 // Definitions of Constants
 // ============================================================================================= //
 
-#define TIMESTEP_MS 10 // 100 Hz control loop
+#define TIMESTEP_MS 1 // 1000 Hz control loop
 
 // ============================================================================================= //
 // Definitions of Structures
@@ -45,8 +46,9 @@
 typedef struct SenseData
 {
     LineSensorData * lineSensorData;
-    CameraData * cameraData;
+    //CameraData * cameraData;
     LidarData * lidarData;
+    HSVData * hsvData;
 }SenseData;
 
 // ============================================================================================= //

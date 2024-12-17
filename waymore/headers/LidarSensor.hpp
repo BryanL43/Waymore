@@ -7,10 +7,6 @@
 
 #include <iostream>
 #include <thread>
-#include <atomic>
-#include <mutex>
-
-#define MAXOBSTACLES 5
 
 #ifndef _countof
 #define _countof(_Array) (int)(sizeof(_Array) / sizeof(_Array[0]))
@@ -26,7 +22,7 @@ public:
     ~LidarSensor();
     
 private:
-    std::atomic<bool> shuttingDown;
+    bool isRunning;
     ILidarDriver* lidar;
     LidarData * lidarData;
     int distanceThresh;
@@ -35,9 +31,13 @@ private:
 
     void lidarThreadRoutine();
 
-    // Non-copyable, non-movable
+    // Delete Copy & Move Constructor
     LidarSensor(const LidarSensor&) = delete;
+    LidarSensor(LidarSensor&&) = delete;
+
+    // Delete Copy & Move Assignment Operator
     LidarSensor& operator=(const LidarSensor&) = delete;
+    LidarSensor& operator=(LidarSensor&&) = delete;
 };
 
 #endif

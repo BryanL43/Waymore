@@ -16,63 +16,22 @@
 // Library Linking
 // ============================================================================================= //
 
+#include "WaymoreLib.h"
 #include "RgbSensor.h"
 
 // ============================================================================================= //
 // Internal Variables & States
 // ============================================================================================= //
 
-int device = -1;
-int readRegister;
-
-Thread * RGBSensorThread;
-RGBSensorData * rgbSensorData;
-
+// Device config
+int readRegister = 0x94;
 enum TCS34725_Atime integrationTime;
 
-RGB whiteRef;
-RGB blackRef;
+// Storage
+HSVData * hsvData;
 
 // ============================================================================================= //
-// Main Loop & Business Logic
-// ============================================================================================= //
-
-void * RGBSensorThreadLoop(void * args)
-{
-    (void)args;
-
-    while (RGBSensorThread->running)
-    {
-        microWait(1);
-    }
-
-    return NULL;
-}
-
-// ============================================================================================= //
-// Start and Stop Functions
-// ============================================================================================= //
-
-void startRGBSensor()
-{
-    RGBSensorThread = startThread("RGB sensor thread", RGBSensorThreadLoop);
-
-    if(RGBSensorThread == NULL)
-    {
-        fprintf(stderr, "Failed to start the RGB sensor thread. Exiting.\n");
-        exit(1);
-    }
-}
-
-void stopRGBSensor()
-{
-    stopThread(RGBSensorThread);
-    RGBSensorThread = NULL;
-}
-
-
-// ============================================================================================= //
-// Private Helper functions
+// Private functions
 // ============================================================================================= //
 
 void waitForIntegration()
@@ -108,66 +67,45 @@ void configureRGB(enum TCS34725_Atime atime, enum TCS34725_Gain gain)
     // Put Enable register (0x80) into config[0]
     config[0] = 0x80;
     config[1] = 0x03;
-    if (write(device, config, 2) != 2) {
-        fprintf(stderr, "ConfigureRGB: Failed to write to I2C device!\n");
-        close(device);
-        exit(1);
-    }
+    writeBytesI2C(RGBADDR, config, 2);
 
+    integrationTime = atime;
     // Put ALS time register (0x81) into config[0]
     config[0] = 0x81;
     // Set the integration time
     config[1] = atime;
-    // Write 2 bytes of data to the device
-    if (write(device, config, 2) != 2) {
-        fprintf(stderr, "ConfigureRGB: Failed to write to I2C device!\n");
-        close(device);
-        exit(1);
-    }
+    // Write 2 bytes of data to the RGBADDR
+    writeBytesI2C(RGBADDR, config, 2);
 
     // Put Wait Time register (0x83) into config[0]
     config[0] = 0x83;
     // Set the wait time to 2.4 ms
     config[1] = 0xFF;
-    // Write 2 bytes of data to the device
-    if (write(device, config, 2) != 2) {
-        fprintf(stderr, "ConfigureRGB: Failed to write to I2C device!\n");
-        close(device);
-        exit(1);
-    }
+    // Write 2 bytes of data to the RGBADDR
+    writeBytesI2C(RGBADDR, config, 2);
 
     // Put Control register(0x8F) into config[0]
     config[0] = 0x8F;
     // Set the gain to 4x
     config[1] = gain;
-    // Write 2 bytes of data to the device
-    if (write(device, config, 2) != 2) {
-        fprintf(stderr, "ConfigureRGB: Failed to write to I2C device!\n");
-        close(device);
-        exit(1);
-    }
-
-    // Need this in memory for reading
-    readRegister = 0x94;
+    // Write 2 bytes of data to the RGBADDR
+    writeBytesI2C(RGBADDR, config, 2);
 }
 
 // ============================================================================================= //
-// Function intended for external use
+// Public Functions
 // ============================================================================================= //
 
 void initializeRGB(enum TCS34725_Atime integrationTime, enum TCS34725_Gain gain)
 {
-    // Open the I2C bus once and set the device
-    if ((device = open(BUS, O_RDWR)) < 0) {
-        fprintf(stderr, "initializeRGB: Failed to open the bus.\n");
+    hsvData = malloc(sizeof(HSVData));
+    if (hsvData == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for RGB sensor data (HSV). Exiting.\n");
         exit(1);
     }
 
-    if (ioctl(device, I2C_SLAVE, I2CADDR) < 0) {
-        fprintf(stderr, "initializeRGB: Failed to set I2C address.\n");
-        close(device);
-        exit(1);
-    }
+    registerDeviceI2C(RGBADDR);
 
     // Configure the RGB sensor
     configureRGB(integrationTime, gain);
@@ -178,32 +116,23 @@ void initializeRGB(enum TCS34725_Atime integrationTime, enum TCS34725_Gain gain)
 
 RGB collectRawReading()
 {
-    if (device < 0)
+    if (RGBADDR < 0)
     {
-        fprintf(stderr, "RGB device has not been initialized!\n");
+        fprintf(stderr, "RGB RGBADDR has not been initialized!\n");
         exit(1);
     }
 
     // Init an array to store raw data
     char data[8] = {0};
 
-    // Trigger a read
-    if (write(device, &readRegister, 1) != 1) {
-        fprintf(stderr, "Error: Failed to write to I2C device.\n");
-        close(device);
-        exit(1);
-    }
+    // Trigger a read by writing to the read register
+    writeByteI2C(RGBADDR, readRegister, 1);
 
     // Wait for the integration time to pass
     waitForIntegration();
 
     // Read the results
-    if(read(device, data, 8) != 8)
-    {
-        fprintf(stderr, "Ran into error while reading from RGB sensor\n");
-        close(device);
-        exit(1);
-    }
+    readBytesI2C(RGBADDR, data, 8);
 
     // Put the data into the correct bins
     uint16_t clear = (data[1] << 8) + data[0];
@@ -231,7 +160,7 @@ RGB collectRawReading()
     return rawReading;
 }
 
-int checkRed(RGB reading)
+void setHSVData(RGB reading)
 {
     // convert to HSV
     // acceptable degrees for red: greater than 330 (pink) or less than 30 (orange)
@@ -273,18 +202,50 @@ int checkRed(RGB reading)
     // compute v 
     double v = cmax * 100; 
 
-    printf("HSV = %f %f %f\n", h, s, v);
+    hsvData->hue = h;
+    hsvData->saturation = s;
+    hsvData->value = v;
+}
 
-    if(h < 30 || h > 330)
-        return 1;
+void colorMatch()
+{
+    double thresh = 5.0;
 
-    return 0;
+    if (fuzzyMatchDouble(hsvData->hue, GREEN, thresh))
+    {
+        strcpy(hsvData->colorName, "Green");
+    }
+    else if (fuzzyMatchDouble(hsvData->hue, BLUE, thresh))
+    {
+        strcpy(hsvData->colorName, "Blue");
+    }
+    else if (fuzzyMatchDouble(hsvData->hue, YELLOW, thresh))
+    {
+        strcpy(hsvData->colorName, "Yellow");
+    }
+    else if (fuzzyMatchDouble(hsvData->hue, REDLOW, thresh)
+       || fuzzyMatchDouble(hsvData->hue, REDHIGH, thresh))
+    {
+        strcpy(hsvData->colorName, "Red");
+    }
+    else // Naaaaahhh
+    {
+        strcpy(hsvData->colorName, "I dunno");
+    }
+}
+
+HSVData readColor()
+{
+    RGB rgb = collectRawReading();
+    setHSVData(rgb);
+    colorMatch();
+    return *hsvData;
 }
 
 void uninitializeRGB()
 {
-    // Close the I2C bus
-    close(device);
+    free(hsvData);
+    hsvData = NULL;
 }
 
 // ============================================================================================= //

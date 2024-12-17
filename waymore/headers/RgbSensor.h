@@ -35,7 +35,8 @@
 // ============================================================================================= //
 
 #define BUS "/dev/i2c-1"    // I2C bus device
-#define I2CADDR 0x29        // I2C address of the RGB sensor
+#define RGBADDR 0x29        // I2C address of the RGB sensor
+#define FUZZYTHRESHOLD 15   // Fuzzy error for color matching
 
 // ============================================================================================= //
 // Definitions of Types
@@ -66,29 +67,31 @@ typedef struct RGB
     uint8_t blue;
 }RGB;
 
-// ============================================================================================= //
-// Definitions of Structs
-// ============================================================================================= //
+typedef struct HSVData
+{
+    double hue;
+    double saturation;
+    double value;
+    char colorName[8];
+}HSVData;
 
-typedef struct RGBSensorData{
-    
-} RGBSensorData;
-
-
-// ============================================================================================= //
-// Start and Stop Functions
-// ============================================================================================= //
-
-void startRGBSensor();
-void stopRGBSensor();
+typedef enum HsvColor
+{
+    REDLOW = 0,
+    YELLOW = 60,
+    GREEN = 120,
+    CYAN = 180,
+    BLUE = 240,
+    MAGENTA = 300,
+    REDHIGH = 360,
+}HsvColor;
 
 // ============================================================================================= //
 // Functions intended for public use
 // ============================================================================================= //
 
 void initializeRGB(enum TCS34725_Atime, enum TCS34725_Gain);
-RGB collectRawReading();
-int checkRed();
+HSVData readColor();
 void uninitializeRGB();
 
 // ============================================================================================= //

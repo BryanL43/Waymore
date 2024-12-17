@@ -35,9 +35,7 @@
 // Definitions of Internal Variables
 // ============================================================================================= //
 
-uint8_t deviceAddress;
-
-const int frequencyHz = 1400;
+const int frequencyHz = 1200;
 
 // ============================================================================================= //
 // Private Functions
@@ -45,10 +43,10 @@ const int frequencyHz = 1400;
 
 static void setPWM(uint8_t channel, uint16_t on, uint16_t off)
 {
-    writeByteI2C(deviceAddress, ON_LOWBYTE + 4 * channel, on & 0xFF);
-    writeByteI2C(deviceAddress, ON_HIGHBYTE + 4 * channel, (on >> 8) & 0xFF);
-    writeByteI2C(deviceAddress, OFF_LOWBYTE + 4 * channel, off & 0xFF);
-    writeByteI2C(deviceAddress, OFF_HIGHBYTE + 4 * channel, (off >> 8) & 0xFF);
+    writeByteI2C(MOTORHATADDR, ON_LOWBYTE + 4 * channel, on & 0xFF);
+    writeByteI2C(MOTORHATADDR, ON_HIGHBYTE + 4 * channel, (on >> 8) & 0xFF);
+    writeByteI2C(MOTORHATADDR, OFF_LOWBYTE + 4 * channel, off & 0xFF);
+    writeByteI2C(MOTORHATADDR, OFF_HIGHBYTE + 4 * channel, (off >> 8) & 0xFF);
 }
 
 // ============================================================================================= //
@@ -67,8 +65,6 @@ void initializeMotorHat()
 
     // Set PCA9685 to default mode
     writeByteI2C(MOTORHATADDR, MODE1, DEFAULTVAL);
-
-    deviceAddress = MOTORHATADDR;
 
     setMotorHatFrequency(frequencyHz);
 
@@ -98,25 +94,25 @@ int setMotorHatFrequency(uint32_t frequency)
     uint8_t prescale = (uint8_t)(prescaleval + 0.5);
 
     // Read the current MODE1 register value
-    oldmode = readByteI2C(deviceAddress, MODE1);
+    oldmode = readByteI2C(MOTORHATADDR, MODE1);
     newmode = (oldmode & 0x7F) | 0x10;
 
     // Make the device go to sleep so we can set the prescaler
-    if (writeByteI2C(deviceAddress, MODE1, newmode))
+    if (writeByteI2C(MOTORHATADDR, MODE1, newmode))
     {
         fprintf(stderr, "Motor HAT Error: Failed to go to sleep\n");
         return -1;
     }
 
     // Set the prescaler
-    if (writeByteI2C(deviceAddress, PRESCALE, prescale) != 0)
+    if (writeByteI2C(MOTORHATADDR, PRESCALE, prescale) != 0)
     {
         fprintf(stderr, "Motor HAT Error: Failed to set prescaler\n");
         return -1;
     }
 
     // Go back to old mode
-    if (writeByteI2C(deviceAddress, MODE1, oldmode) != 0)
+    if (writeByteI2C(MOTORHATADDR, MODE1, oldmode) != 0)
     {
         fprintf(stderr, "Motor HAT Error: Failed to wake up\n");
         return -1;
@@ -125,7 +121,7 @@ int setMotorHatFrequency(uint32_t frequency)
     milliWait(5); // Add a small wait to make time for stabilization
 
     // Enable auto-increment in the register pointer
-    if (writeByteI2C(deviceAddress, MODE1, oldmode | 0x80) != 0)
+    if (writeByteI2C(MOTORHATADDR, MODE1, oldmode | 0x80) != 0)
     {
         fprintf(stderr, "Motor HAT Error: Failed to turn on auto increment\n");
         return -1;

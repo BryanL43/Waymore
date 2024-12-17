@@ -18,15 +18,6 @@
 // Definitions of Private Variables and States
 // ============================================================================================= //
 
-#define MOTORHATADDR 0x40
-
-#define LEFTMOTOR	0
-#define AIN1		1
-#define AIN2		2
-#define BIN1		3
-#define BIN2		4
-#define RIGHTMOTOR	5
-
 MotorAction currentAction = HALT;
 int currentLeftSpeed = 0;
 int currentRightSpeed = 0;
@@ -47,12 +38,12 @@ void commandMotors(MotorAction newAction, int newLeftSpeed, int newRightSpeed)
 	switch (newAction)
 	{
 		case (FORWARD):
-			setDutyCycle(RIGHTMOTOR, newRightSpeed);
-			setDutyCycle(LEFTMOTOR, newLeftSpeed);
 			setLevel(AIN1, 0);
 			setLevel(AIN2, 1);
 			setLevel(BIN1, 1);
 			setLevel(BIN2, 0);
+			setDutyCycle(RIGHTMOTOR, newRightSpeed);
+			setDutyCycle(LEFTMOTOR, newLeftSpeed);
 			currentAction = newAction;
 			currentLeftSpeed = newLeftSpeed;
 			currentRightSpeed = newRightSpeed;

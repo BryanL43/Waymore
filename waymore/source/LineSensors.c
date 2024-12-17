@@ -1,25 +1,11 @@
-/**************************************************************
-* Class:: CSC-615-01 Spring 2024
-* Name:: Waymore Team
-* Student ID:: ...
-* Github-Name:: ...
-* Project:: Final Project
-*
-* File:: ir.c
-*
-* Description:: Function implementations and states for ir
-*		        sensor functionality
-*
-**************************************************************/
-
 #include "../headers/LineSensors.h"
 
 // ============================================================================================= //
 // Internal variables and states
 // ============================================================================================= //
 
-Thread * lineSensorThread;
-LineSensorData * lineSensorData;
+Thread *lineSensorThread = NULL;
+LineSensorData *lineSensorData = NULL;
 
 // GPIO pins connected in ascending order, left to right (blue/purple wires)
 int lineSensorPins[] = {5, 17, 22, 23, 24, 25, 27};
@@ -36,21 +22,36 @@ void initializeLineSensors()
         fprintf(stderr, "Failed to allocate memory for line sensor data. Exiting.\n");
         exit(1);
     }
+
+    // Initialize sensor levels to zero
+    for (int i = 0; i < LINESENSORCOUNT; i++)
+    {
+        lineSensorData->levels[i] = 0;
+    }
 }
 
 void uninitializeLineSensors()
 {
-    free(lineSensorData);
-    lineSensorData = NULL;
+    if (lineSensorData != NULL)
+    {
+        free(lineSensorData);
+        lineSensorData = NULL;
+    }
 }
 
 // ============================================================================================= //
 // Main Loop & Business Logic
 // ============================================================================================= //
 
-void * lineSensorThreadLoop(void * args)
+void *lineSensorThreadLoop(void *args)
 {
     (void)args;
+
+    if (lineSensorThread == NULL)
+    {
+        fprintf(stderr, "Error: lineSensorThread is NULL\n");
+        pthread_exit(NULL);
+    }
 
     while (lineSensorThread->running)
     {
@@ -62,9 +63,8 @@ void * lineSensorThreadLoop(void * args)
             */
             lineSensorData->levels[i] = getPinLevel(lineSensorPins[i]);
         }
-        microWait(1);
+        microWait(100);
     }
-
     return NULL;
 }
 
@@ -75,18 +75,20 @@ void * lineSensorThreadLoop(void * args)
 void startLineSensors()
 {
     lineSensorThread = startThread("IR sensor thread", lineSensorThreadLoop);
-
-    if(lineSensorThread == NULL)
+    if (lineSensorThread == NULL)
     {
-        fprintf(stderr, "Failed to start the IR sensor thread. Exiting.\n");
+        fprintf(stderr, "Error: Failed to start the IR sensor thread. Exiting.\n");
         exit(1);
     }
 }
 
 void stopLineSensors()
 {
-    stopThread(lineSensorThread);
-    lineSensorThread = NULL;
+    if (lineSensorThread != NULL)
+    {
+        stopThread(lineSensorThread);
+        lineSensorThread = NULL;
+    }
 }
 
 // ============================================================================================= //
@@ -98,6 +100,20 @@ LineSensorData * getLineSensorDataRef()
     return lineSensorData;
 }
 
-// ============================================================================================= //
-// End of File
-// ============================================================================================= //
+void refreshLineSensorData()
+{
+    if (lineSensorData == NULL)
+    {
+        fprintf(stderr, "Error: Line sensor data is NULL!\n");
+        exit(1);
+    }
+
+    for (int i = 0; i < LINESENSORCOUNT; i++)
+    {
+        /*
+        ** When the pins are HIGH (1), that means LINE.
+        ** When the pins are LOW (0), that means NO LINE.
+        */
+        lineSensorData->levels[i] = getPinLevel(lineSensorPins[i]);
+    }
+}

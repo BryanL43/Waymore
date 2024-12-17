@@ -20,21 +20,14 @@
 extern "C" {
 #endif
 
-#define MAXOBSTACLES 5
-
-typedef struct {
-    double closestAngle;
-    double closestDistance;
-    double leftObstacleAngle;
-    double rightObstacleAngle;
-} ObstacleData;
-
-typedef struct {
-    ObstacleData obstacles[MAXOBSTACLES];
-    int validObstacles;
-} LidarData;
+#define DEGREES 360
 
 typedef void Lidar; // Intermediate for C compatibility
+
+typedef struct LidarData
+{
+    double degreeDistances[DEGREES];
+}LidarData;
 
 Lidar * initializeLidar();
 void startLidar();

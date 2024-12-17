@@ -47,19 +47,20 @@ void initialize()
     // Initialize interfaces
     initializeGPIO();
     initializeI2C();
+    initializeRGB(INTEGRATE2_4MS, GAIN16X);
     initializeMotorHat();
 
     // Initialize senses
     initializeLineSensors();
-    initializeCamera();
+    //initializeCamera();
     initializeLidar();
+
 
     senseData = (SenseData *) malloc(sizeof(SenseData));
     senseData->lineSensorData = getLineSensorDataRef();
-    senseData->cameraData = getCameraDataRef();
+    //senseData->cameraData = getCameraDataRef();
     senseData->lidarData = getLidarDataRef();
 
-    // Initialize cognition
     initializeCognition();
 }
 
@@ -71,8 +72,9 @@ void uninitialize()
 
     printf("\nUninitializing each library...\n");
 
+    uninitializeRGB();
     uninitializeLidar();
-    uninitializeCamera();
+    //uninitializeCamera();
     uninitializeLineSensors();
     uninitializeGPIO();
     free(senseData);
@@ -85,9 +87,10 @@ void start()
     **  This is where we will be calling all start() functions
     */
 
-    startLineSensors();
-    startCamera();
+    //startLineSensors();
+    //startCamera();
     startLidar();
+    milliWait(1000);
 }
 
 void stop()
@@ -97,35 +100,7 @@ void stop()
     */
 
     // Camera and Lidar have no stop functions
-    stopLineSensors();
-}
-
-void printTestStatements()
-{
-        // Print the line sensor data
-        printf("Line Sensors: ");
-        for (int i = 0; i < LINESENSORCOUNT; i++)
-        {
-            printf("%d ", senseData->lineSensorData->levels[i]);
-        }
-        printf("\n");
-
-        // Print the camera data
-        printf("Camera distances: ");
-        for (int i = 0; i < CAMSLICES; i++)
-        {
-            printf("%f ", senseData->cameraData->distances[i]);
-        }
-        printf("\n");
-
-        // Print the lidar data
-        for (int i = 0; i < senseData->lidarData->validObstacles; i++)
-        {
-            printf("Obstacle %d: angle %.2f, distance %.2f\n", i,
-                senseData->lidarData->obstacles[i].closestAngle,
-                senseData->lidarData->obstacles[i].closestDistance
-                );
-        }
+    //stopLineSensors();
 }
 
 // ============================================================================================= //
@@ -138,14 +113,27 @@ void mainLoop()
     **  start by collecting the latest data from our senses
     **  and then interpret the senseData and act on it.
     */
+   
     while(running)
     {
-        struct timespec start = currentTime();
-        makeDecision(senseData);
-        unsigned long elapsed = microSecondsSince(&start);
-        milliWait(TIMESTEP_MS - (elapsed / 1000));
-        // elapsed = microSecondsSince(&start);
-        // printf("Elapsed time: %lu\n", elapsed);
+        int noObstacles = senseData->lidarData->degreeDistances[60] > 800;
+
+        refreshLineSensorData();
+        double linePosition = calculateLinePosition(senseData->lineSensorData);
+
+        int lineBelow = (!isnan(linePosition));
+
+        if(lineBelow)
+            lineFollow(linePosition);
+        else
+            lineCorner();
+
+        if (strcmp(readColor().colorName, "Red") == 0) {
+            running = FALSE;
+            continue;
+        }
+
+        microWait(1);
     }
 
     // Stop the motors and exit

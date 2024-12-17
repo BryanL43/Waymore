@@ -108,7 +108,9 @@ int initializeI2C();
 int uninitializeI2C();
 void registerDeviceI2C(uint8_t ADDR);
 int readByteI2C(uint8_t ADDR, uint8_t reg);
+int readBytesI2C(uint8_t ADDR, char * destbuf, uint32_t len);
 int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value);
+int writeBytesI2C(uint8_t ADDR, const char * buf, uint32_t len);
 
 // ============================================================================================= //
 // Threading Functions

@@ -37,13 +37,13 @@ typedef enum LastLineLocation
     RightOfCar
 }LastLineLocation;
 
-typedef enum CurrentAction
+typedef enum CurrentState
 {
     LineFollowing,
+    LineCornering,
     AvoidingObstacle,
-    LassoingObstacle,
-    LineCornering
-}CurrentAction;
+    LassoingObstacle
+}CurrentState;
 
 typedef enum LassoPath
 {
@@ -56,14 +56,6 @@ typedef enum LassoPath
 // ============================================================================================= //
 
 void initializeCognition();
-void makeDecision(SenseData * senseData);
-
-// ============================================================================================= //
-// Lidar Related Functions
-// ============================================================================================= //
-
-ObstacleData * scanForObstacleAhead(LidarData * lidarData);
-ObstacleData * trackObstacle(LidarData * lidarData);
 
 // ============================================================================================= //
 // Line Sensor Related Functions
@@ -75,8 +67,8 @@ double calculateLinePosition(LineSensorData * lineSensorData);
 // Camera Related Functions
 // ============================================================================================= //
 
-double calculateCameraError(CameraData * cameraData);
-double calculateBaseSpeed(double cameraError);
+// double calculateCameraError(CameraData * cameraData);
+// double calculateBaseSpeed(double cameraError);
 
 // ============================================================================================= //
 // PID Error Calculation
@@ -88,10 +80,8 @@ double calculateError(double readings, double reference);
 // Enumerated Control Functions
 // ============================================================================================= //
 
-void lineFollow(double linePosition, CameraData * cameraData);
+void lineFollow(double linePosition); //, CameraData * cameraData
 void lineCorner();
-void avoidObstacle(LidarData * lidarData);
-void lassoObstacle(LidarData * lidarData);
 
 // ============================================================================================= //
 // End of File

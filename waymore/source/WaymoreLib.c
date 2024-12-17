@@ -38,7 +38,7 @@ int readIdx	    = RD  >> 2;
 
 // Pertaining to I2C functionality
 int i2cBus = -1;
-uint8_t currentI2cAddr = -1;
+volatile uint8_t currentI2cAddr = -1;
 
 // ============================================================================================= //
 // Validation functions
@@ -288,6 +288,23 @@ int readByteI2C(uint8_t ADDR, uint8_t reg)
 	return buffer[0];
 }
 
+int readBytesI2C(uint8_t ADDR, char * destbuf, uint32_t len)
+{
+	if(currentI2cAddr != ADDR)
+	{
+		currentI2cAddr = ADDR;
+		bcm2835_i2c_setSlaveAddress(ADDR);
+	}
+
+	if (bcm2835_i2c_read(destbuf, len) != BCM2835_I2C_REASON_OK)
+	{
+		fprintf(stderr, "Failed to read bytes from I2C address 0x%02x!\n", ADDR);
+		return -1;
+	}
+
+	return 0;
+}
+
 int writeByteI2C(uint8_t ADDR, uint8_t reg, uint8_t value)
 {
     if(currentI2cAddr != ADDR)
@@ -328,69 +345,59 @@ int writeBytesI2C(uint8_t ADDR, const char * buf, uint32_t len)
 // Threading Initialization and Uninitialization Functions
 // ============================================================================================= //
 
-Thread * startThread(const char * name, void* (*function) (void *))
+Thread *startThread(const char *name, void *(*function)(void *))
 {
-	// Validate the function
-	if(function == NULL)
-	{
-		fprintf(stderr, "Failed to start %s: "
-				"function cannot be null.\n", name);
-		return NULL;
-	}
+    if (function == NULL)
+    {
+        fprintf(stderr, "Error: Function pointer is NULL for thread: %s\n", name);
+        return NULL;
+    }
 
-	// Validate the name
-	if(name == NULL) name = "unnamed";
-	printf("Starting '%s'\n", name);
+    Thread *thread = malloc(sizeof(Thread));
+    if (thread == NULL)
+    {
+        fprintf(stderr, "Error: Failed to allocate memory for thread: %s\n", name);
+        return NULL;
+    }
 
-	// Allocate memory for the pointer, checking for errors
-	Thread * thread = (Thread *) malloc(sizeof(Thread));
-	if (thread == NULL)
-	{
-		fprintf(stderr, "Failed to allocate memory for '%s'\n", name);
-		return NULL;
-	}
+    thread->name = strdup(name ? name : "unnamed");
+    if (thread->name == NULL)
+    {
+        fprintf(stderr, "Error: Failed to allocate memory for thread name.\n");
+        free(thread);
+        return NULL;
+    }
 
-	thread->name = strdup(name);
-	if (thread->name == NULL)
-	{
-		fprintf(stderr, "Failed to allocate memory for name of thread\n");
-		free(thread);
-		return NULL;
-	}
+    thread->running = 1;
 
-	// Spin up the thread
-	thread->running = 1;
-	int res = pthread_create(&thread->id, NULL, function, NULL);
-	if (res != 0)
-	{
-		fprintf(stderr, "Failed to start '%s'\n", thread->name);
-		thread->running = 0;
-		free(thread->name);
-		free(thread);
-		return NULL;
-	}
+    if (pthread_create(&thread->id, NULL, function, NULL) != 0)
+    {
+        fprintf(stderr, "Error: Failed to create thread: %s\n", thread->name);
+        free(thread->name);
+        free(thread);
+        return NULL;
+    }
 
-	return thread;
+    return thread;
 }
 
-void stopThread(Thread * thread)
+void stopThread(Thread *thread)
 {
-	// Perform null check
-	if (thread == NULL) return;
+    if (thread == NULL)
+    {
+        return;
+    }
 
-	// Set flag
-	thread->running = 0;
+    thread->running = 0;
 
-	// Wait for the thread to complete its task or be stopped
-	pthread_join(thread->id, NULL);
+    pthread_join(thread->id, NULL);
 
-	printf("'%s' has finished - freeing its resources\n", thread->name);
-	
-	// Free the resources
-	if (thread->name != NULL) free(thread->name);
+    printf("'%s' has finished - freeing its resources\n", thread->name);
 
-	// Free the struct's memory
-	free(thread);
+    if (thread->name != NULL)
+        free(thread->name);
+
+    free(thread);
 }
 
 

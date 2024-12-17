@@ -2,14 +2,13 @@
 #define LIDARDEVICE "/dev/ttyS0"
 #define BAUDRATE 115200
 #define MOTOCTLGPIO 6
-#define DISTANCETHRESH 1000
 
 // ============================================================================================= //
 // Constructor
 // ============================================================================================= //
 LidarSensor::LidarSensor()
 {
-    shuttingDown.store(false);
+    isRunning = false;
 
     lidarData = new LidarData;
 
@@ -52,10 +51,9 @@ LidarSensor::LidarSensor()
 // ============================================================================================= //
 // Thread routine for Lidar obstacle data acquistion
 // ============================================================================================= //
-static LidarData sweepdata;
 void LidarSensor::lidarThreadRoutine() {
     try {
-        while (!shuttingDown.load()) { 
+        while (isRunning) { 
             sl_lidar_response_measurement_node_hq_t nodes[8192];
             size_t count = _countof(nodes);
 
@@ -63,68 +61,25 @@ void LidarSensor::lidarThreadRoutine() {
             if (SL_IS_OK(op_result)) {
                 lidar->ascendScanData(nodes, count);
 
-                // 360 Lidar scan setup
-                sweepdata = {0};
-                double leftObstAngle = NAN, rightObstAngle = NAN, closestAngle = NAN;
-                double closestDist = 1e5;
+                // Initialize LidarData structure with zeroed distances
+                LidarData currentData = {0.0};
 
                 for (size_t i = 0; i < count; i++) {
-                    // Limit the number of obstacles to MAXOBSTACLES
-                    if (sweepdata.validObstacles >= MAXOBSTACLES) 
-                        break;
+                    // Calculate angle and distance
+                    double angle = (nodes[i].angle_z_q14 * 90.0f) / 16384.0f; // Angle in degrees
+                    double distance = nodes[i].dist_mm_q2 / 4.0f;             // Distance in millimeters
 
-                    // Filter out invalid angles
-                    double angle = (nodes[i].angle_z_q14 * 90.0f) / 16384.0f;
-                    if(angle < 30 || angle > 330) 
-                        continue;
+                    // Ensure angle wraps around correctly (0-359 degrees)
+                    int degreeIndex = (int)(angle + 0.5) % 360; // Round angle to the nearest degree
 
-                    // Filter out invalid distances
-                    double distance = nodes[i].dist_mm_q2 / 4.0f;
-                    if (distance > 2000 || distance < 150)
-                        continue;
-                    
-
-                    // if(angle > 175 && angle < 185) {
-                    //     printf("Angle: %.2f, Distance: %.2f\n", angle, distance);
-                    // }
-                    
-                    // Repeatedly search for obstacles within distance and map its left-most point
-                    // of said obstacle to its right-most point
-                    if (distance < DISTANCETHRESH) {
-                        // Acquired left-most point
-                        if (isnan(leftObstAngle)) {
-                            leftObstAngle = angle;
-                            rightObstAngle = angle; // Default rightObstAngle in case of error
-                            closestAngle = angle;
-                            closestDist = distance;
-                        } else {
-                            // Still seeking right-most point
-                            rightObstAngle = angle;
-                            if (distance < closestDist) {
-                                closestDist = distance;
-                            }
-                        }
-                    } else {
-                        if(isnan(leftObstAngle)) continue;
-                        // We have finished mapping this obstacle
-                        sweepdata.obstacles[sweepdata.validObstacles].closestAngle = closestAngle;
-                        sweepdata.obstacles[sweepdata.validObstacles].closestDistance = closestDist;
-                        sweepdata.obstacles[sweepdata.validObstacles].leftObstacleAngle = leftObstAngle;
-                        sweepdata.obstacles[sweepdata.validObstacles].rightObstacleAngle = rightObstAngle;
-                        sweepdata.validObstacles ++;
-
-                        // Reset scoped vars for the next obstacle
-                        leftObstAngle = NAN;
-                        rightObstAngle = NAN;
-                        closestAngle = NAN;
-                        closestDist = 1e5;
+                    // Assign distance to the corresponding degree index
+                    if (degreeIndex >= 0 && degreeIndex < 360) {
+                        currentData.degreeDistances[degreeIndex] = distance;
                     }
                 }
-                *lidarData = sweepdata;
-            } else {
-                // Stop the motor and throw an exception
-                setPinLevel(MOTOCTLGPIO, LOW);
-                throw std::runtime_error("Lidar failed to acquire scanned data!");
+
+                // Update the shared lidar data
+                *lidarData = currentData;
             }
         }
     } catch (const std::exception& e) {
@@ -168,7 +123,7 @@ LidarSensor::~LidarSensor() {
     }
 
     // Set the shutting down flag to stop further traffic from startLidar()
-    shuttingDown.store(true);
+    isRunning = false;
     lidarThread.join();
 
     lidar->stop();
